@@ -1,0 +1,6 @@
+public enum Pillar {
+    INHERITANCE,
+    POLYMORPHISM,
+    ABSTRACTION,
+    ENCAPSULATION
+}
