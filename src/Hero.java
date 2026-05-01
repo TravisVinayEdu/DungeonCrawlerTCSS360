@@ -1,3 +1,5 @@
+import java.util.Set;
+
 public abstract class Hero extends DungeonCharacter {
     private double myChanceToBlock;
     private int myHealingPotions;
