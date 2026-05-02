@@ -1,4 +1,10 @@
-public abstract class Potion {
+import java.io.Serializable;
+import java.util.Random;
+
+public abstract class Potion implements Serializable {
+    private static final Random RANDOM = new Random();
+    private static final long serialVersionUID = 1L;
+
     private final int myPotency;
 
     public Potion(int theMinPot, int theMaxPot){
@@ -7,11 +13,16 @@ public abstract class Potion {
     public Potion(int thePotency){
         myPotency = thePotency;
     }
+
     private int genPotency(int theMinPot, int theMaxPot) {
-        // Need to create a ran generator
-        return 0;
+        if (theMinPot < 0 || theMaxPot < theMinPot) {
+            throw new IllegalArgumentException("Potion potency range is invalid.");
+        }
+        return RANDOM.nextInt(theMaxPot - theMinPot + 1) + theMinPot;
     }
+
     public void apply(Hero hero){}
+
     public int getPotency() {
         return myPotency;
     }
