@@ -45,6 +45,19 @@ public class Room {
         pillar = p;
     }
 
+    public boolean workingDoor(Direction d) {
+        if (d == Direction.NORTH) {
+            return doors[0];
+        }
+        if (d == Direction.EAST) {
+            return doors[1];
+        }
+        if (d == Direction.SOUTH) {
+            return doors[2];
+        }
+        return doors[3];
+    }
+
     public void setDoor(Direction d, boolean open) {
         if (d == Direction.NORTH)
         {

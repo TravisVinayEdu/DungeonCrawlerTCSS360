@@ -1,3 +1,5 @@
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 
 public class Dungeon {
@@ -51,10 +53,41 @@ public class Dungeon {
         }
         placePillars();
     }
-    private boolean isTraversable(){return false;}
+
+    private boolean isTraversable() {
+        boolean[][] visited = new boolean[myHeight][myWidth];
+        Queue<int[]> queue = new LinkedList<>();
+        queue.add(new int[]{0, 0});
+        visited[0][0] = true;
+        int[] dRow = {-1, 0, 1, 0};
+        int[] dCol = {0, 1, 0, -1};
+        Direction[] dirs = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+        while (!queue.isEmpty()) {
+            int[] current = queue.poll();
+            int row = current[0], col = current[1];
+            for (int d = 0; d < 4; d++) {
+                int newRow = row + dRow[d];
+                int newCol = col + dCol[d];
+                if (newRow < 0 || newRow >= myHeight || newCol < 0 || newCol >= myWidth) {
+                    continue;
+                }
+                if (maze[row][col].workingDoor(dirs[d]) && !visited[newRow][newCol]) {
+                    visited[newRow][newCol] = true;
+                    queue.add(new int[]{newRow, newCol});
+                }
+            }
+        }
+        for (int i = 0; i < myHeight; i++) {
+            for (int j = 0; j < myWidth; j++) {
+                if (!visited[i][j]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     private void placePillars() {
-        int pillars = 0;
         Random RNG = new Random();
         boolean A = false;
         boolean E = false;
@@ -86,15 +119,17 @@ public class Dungeon {
             }
         }
     }
-    private void placeMonsters(){}
 
+    private void placeMonsters(){}
 
     public Room getRoom(int theR, int theC) {
         return maze[theR][theC];
     }
+
     public boolean moveHero(Direction d) {
-        return false;
+        return maze[heroRow][heroCol].workingDoor(d);
     }
+
     public Room[][] getVisionGrid() {
         return discoveredMaze;
     }
