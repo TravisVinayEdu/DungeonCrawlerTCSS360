@@ -20,4 +20,9 @@ public class Priestess extends Hero {
     public int heal() {
         return super.heal(randomInRange(MIN_HEAL, MAX_HEAL));
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }
