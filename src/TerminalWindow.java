@@ -2,16 +2,20 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
@@ -152,7 +156,7 @@ public class TerminalWindow extends JFrame implements Appendable {
             case "start":
             case "launch":
             case "play":
-                myGame.runGame(this);
+                showCharacterCreation();
                 break;
             case "2":
             case "load":
@@ -201,6 +205,161 @@ public class TerminalWindow extends JFrame implements Appendable {
         printCentered("#########################");
         printCentered("S = Start      E = Exit");
         println("");
+    }
+
+    private void showCharacterCreation() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BACKGROUND);
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+
+        JTextField nameField = buildInputField();
+        JLabel errorLabel = new JLabel(" ");
+        errorLabel.setForeground(new Color(255, 121, 198));
+        errorLabel.setFont(TERMINAL_FONT);
+
+        JPanel namePanel = new JPanel(new BorderLayout(0, 6));
+        namePanel.setBackground(BACKGROUND);
+        namePanel.add(buildCharacterLabel("Hero Name"), BorderLayout.NORTH);
+        namePanel.add(nameField, BorderLayout.CENTER);
+        namePanel.add(errorLabel, BorderLayout.SOUTH);
+
+        ButtonGroup classGroup = new ButtonGroup();
+        JPanel classPanel = new JPanel(new GridLayout(1, 3, 10, 0));
+        classPanel.setBackground(BACKGROUND);
+
+        JToggleButton warrior = buildClassChoice("Warrior", new Warrior("Preview"));
+        JToggleButton thief = buildClassChoice("Thief", new Thief("Preview"));
+        JToggleButton priestess = buildClassChoice("Priestess", new Priestess("Preview"));
+        warrior.setSelected(true);
+        warrior.addActionListener(event -> updateClassCards(warrior, thief, priestess));
+        thief.addActionListener(event -> updateClassCards(warrior, thief, priestess));
+        priestess.addActionListener(event -> updateClassCards(warrior, thief, priestess));
+        updateClassCards(warrior, thief, priestess);
+
+        classGroup.add(warrior);
+        classGroup.add(thief);
+        classGroup.add(priestess);
+        classPanel.add(warrior);
+        classPanel.add(thief);
+        classPanel.add(priestess);
+
+        JPanel controls = new JPanel(new GridLayout(1, 2, 10, 0));
+        controls.setBackground(BACKGROUND);
+        JButton backButton = buildButton("Back");
+        JButton beginButton = buildButton("Begin Adventure");
+        controls.add(backButton);
+        controls.add(beginButton);
+
+        backButton.addActionListener(event -> showTerminal());
+        beginButton.addActionListener(event -> {
+            String heroName = nameField.getText().trim();
+            if (heroName.isEmpty()) {
+                errorLabel.setText("Enter a hero name before beginning.");
+                nameField.requestFocusInWindow();
+                return;
+            }
+
+            Hero hero = myGame.createHero(getSelectedClassName(classGroup), heroName);
+            showTerminal();
+            myGame.runGame(this, hero);
+        });
+        nameField.addActionListener(beginButton.getActionListeners()[0]);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout(0, 10));
+        bottomPanel.setBackground(BACKGROUND);
+        bottomPanel.add(namePanel, BorderLayout.CENTER);
+        bottomPanel.add(controls, BorderLayout.SOUTH);
+
+        panel.add(buildCreationHeader(), BorderLayout.NORTH);
+        panel.add(classPanel, BorderLayout.CENTER);
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+
+        setContentPane(panel);
+        revalidate();
+        repaint();
+        pack();
+        nameField.requestFocusInWindow();
+    }
+
+    private JLabel buildCreationHeader() {
+        JLabel title = new JLabel("Hero Creation");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setForeground(DOOM_ACCENT);
+        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        return title;
+    }
+
+    private JToggleButton buildClassChoice(final String theClassName, final Hero thePreview) {
+        JToggleButton button = new JToggleButton(buildStatsText(theClassName, thePreview));
+        button.setActionCommand(theClassName);
+        button.setBackground(EDITOR_BACKGROUND);
+        button.setForeground(FOREGROUND);
+        button.setFont(TERMINAL_FONT);
+        button.setVerticalAlignment(SwingConstants.TOP);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+        button.setFocusPainted(false);
+        return button;
+    }
+
+    private void updateClassCards(final JToggleButton... theButtons) {
+        for (JToggleButton button : theButtons) {
+            if (button.isSelected()) {
+                button.setBackground(DOOM_ACCENT);
+                button.setForeground(EDITOR_BACKGROUND);
+            } else {
+                button.setBackground(EDITOR_BACKGROUND);
+                button.setForeground(FOREGROUND);
+            }
+        }
+    }
+
+    private String buildStatsText(final String theClassName, final Hero thePreview) {
+        return "<html><body style='width: 150px'>"
+                + "<b>" + theClassName + "</b><br><br>"
+                + "HP: " + thePreview.getMaxHitPoints() + "<br>"
+                + "Damage: " + thePreview.getMinDamage() + "-"
+                + thePreview.getMaxDamage() + "<br>"
+                + "Speed: " + thePreview.getAttackSpeed() + "<br>"
+                + "Hit: " + percent(thePreview.getHitChance()) + "<br>"
+                + "Block: " + percent(thePreview.getChanceToBlock())
+                + "</body></html>";
+    }
+
+    private JLabel buildCharacterLabel(final String theText) {
+        JLabel label = new JLabel(theText);
+        label.setForeground(DOOM_ACCENT);
+        label.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        return label;
+    }
+
+    private JButton buildButton(final String theText) {
+        JButton button = new JButton(theText);
+        button.setBackground(INPUT_BACKGROUND);
+        button.setForeground(FOREGROUND);
+        button.setFont(TERMINAL_FONT);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        return button;
+    }
+
+    private String getSelectedClassName(final ButtonGroup theClassGroup) {
+        return theClassGroup.getSelection().getActionCommand();
+    }
+
+    private void showTerminal() {
+        setContentPane(buildContentPane());
+        revalidate();
+        repaint();
+        pack();
+        myInput.requestFocusInWindow();
+    }
+
+    private static String percent(final double theChance) {
+        return Math.round(theChance * 100) + "%";
     }
 
     private void println(final String theText) {

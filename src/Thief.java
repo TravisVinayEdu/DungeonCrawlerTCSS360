@@ -32,4 +32,9 @@ public class Thief extends Hero {
             attack(theOpp);
         }
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

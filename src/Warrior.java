@@ -27,4 +27,9 @@ public class Warrior extends Hero{
             theOpp.takeDamage(randomInRange(MIN_CRUSHING_BLOW_DMG, MAX_CRUSHING_BLOW_DMG));
         }
     }
+
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

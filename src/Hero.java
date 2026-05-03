@@ -100,9 +100,9 @@ public abstract class Hero extends DungeonCharacter {
     public String toString() {
         return "Name: " + getName()
                 + System.lineSeparator() + "Hit Points: " + getHitPoints()
-                + System.lineSeparator() + "Healing Potions: " + myHealingPotions
-                + System.lineSeparator() + "Vision Potions: " + myVisionPotions
-                + System.lineSeparator() + "Pillars Found: " + myPillars;
+                + System.lineSeparator() + "Total Healing Potions: " + myHealingPotions
+                + System.lineSeparator() + "Total Vision Potions: " + myVisionPotions
+                + System.lineSeparator() + "Pillar Pieces Found: " + myPillars;
     }
 
 }
