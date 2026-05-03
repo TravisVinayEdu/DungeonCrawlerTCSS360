@@ -41,6 +41,18 @@ public class Room {
     }
     public int fallInPit(){return -1;}
 
+    public void setEntrance() {
+        isEntrance = true;
+    }
+
+    public boolean isEntrance() {
+        return isEntrance;
+    }
+
+    public void setExit() {
+        isExit = true;
+    }
+
     public void setPillar(Pillar p) {
         pillar = p;
     }

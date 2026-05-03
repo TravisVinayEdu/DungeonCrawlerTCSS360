@@ -14,6 +14,7 @@ public class Dungeon {
     public Dungeon(final int theWidth, final int theHeight) {
         myWidth = theWidth;
         myHeight = theHeight;
+        generateMaze();
     }
 
     private void generateMaze() {
@@ -47,6 +48,17 @@ public class Dungeon {
                         }
                     }
                     maze[i][j] = temp;
+                }
+            }
+            Room entrance = maze[RNG.nextInt(myHeight)][RNG.nextInt(myWidth)];
+            entrance.setEntrance();
+            boolean exitRoom = false;
+            while (!exitRoom) {
+                Room exit = maze[RNG.nextInt(myHeight)][RNG.nextInt(myWidth)];
+                if (!exit.isEntrance())
+                {
+                    exit.setExit();
+                    exitRoom = true;
                 }
             }
             flag = isTraversable();

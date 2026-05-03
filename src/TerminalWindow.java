@@ -157,6 +157,7 @@ public class TerminalWindow extends JFrame implements Appendable {
             case "launch":
             case "play":
                 showCharacterCreation();
+                Dungeon theDungeon = new Dungeon(10, 10);
                 break;
             case "2":
             case "load":
