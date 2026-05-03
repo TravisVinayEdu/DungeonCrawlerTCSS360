@@ -44,7 +44,6 @@ public class DungeonCrawler {
 
     public void saveGame(String filename){}
     public void loadGame(String filename){}
-    private Hero chooseHero(){return null;}
     private void playTurn(){}
     private void handleRoom(Room r){}
     private void battle(Hero h, Monster m){}
