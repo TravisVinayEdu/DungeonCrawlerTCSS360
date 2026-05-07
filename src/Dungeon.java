@@ -11,9 +11,12 @@ public class Dungeon {
     private int heroRow;
     private int heroCol;
 
+    private final int MONSTER_CHANCE = 40;
+
     public Dungeon(final int theWidth, final int theHeight) {
         myWidth = theWidth;
         myHeight = theHeight;
+        maze = new Room[myHeight][myWidth];
         generateMaze();
     }
 
@@ -64,6 +67,7 @@ public class Dungeon {
             flag = isTraversable();
         }
         placePillars();
+        placeMonsters();
     }
 
     private boolean isTraversable() {
@@ -132,7 +136,20 @@ public class Dungeon {
         }
     }
 
-    private void placeMonsters(){}
+    private void placeMonsters() {
+        Random RNG = new Random();
+        for (int i = 0; i < myHeight; i++) {
+            for (int j = 0; j < myWidth; j++) {
+                if (maze[i][j].isEmpty())
+                {
+                    if (RNG.nextInt(100) >= MONSTER_CHANCE)
+                    {
+
+                    }
+                }
+            }
+        }
+    }
 
     public Room getRoom(int theR, int theC) {
         return maze[theR][theC];

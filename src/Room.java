@@ -1,3 +1,4 @@
+import java.util.Random;
 
 public class Room {
     private boolean healingPotion;
@@ -11,6 +12,10 @@ public class Room {
     private int myRow;
     private int myCol;
 
+    // more than 1 monster per room?
+    // private final int MONSTER_CAP = 3;
+    private final int POTION_CHANCE = 9;
+
     public Room(int theRow, int theCol) {
         myRow = theRow;
         myCol = theCol;
@@ -18,6 +23,18 @@ public class Room {
         for (int i = 0; i < 4; i++)
         {
             doors[i] = false;
+        }
+        Random RNG = new Random();
+        if (RNG.nextInt(100) >= POTION_CHANCE)
+        {
+            if (RNG.nextInt(2) == 0)
+            {
+                healingPotion = true;
+            }
+            else
+            {
+                visionPotion = true;
+            }
         }
     }
 
@@ -30,6 +47,27 @@ public class Room {
             return true;
         }
         return false;
+    }
+
+    public void setMonsters() {
+        Random RNG = new Random();
+        int monsterChoice = RNG.nextInt(3);
+        if (monsterChoice == 0)
+        {
+            monsters = new Skeleton();
+        }
+        else if (monsterChoice == 1)
+        {
+            monsters = new Gremlin();
+        }
+        else
+        {
+            monsters = new Ogre();
+        }
+    }
+
+    public void setMonstersManual(Monster m) {
+        monsters = m;
     }
 
     public boolean hasItem() {
