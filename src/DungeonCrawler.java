@@ -13,6 +13,7 @@ public class DungeonCrawler {
 
     void runGame(Appendable terminal, Hero hero) {
         writeLine(terminal, "Initializing dungeon systems...");
+        Dungeon dungeon = new Dungeon(10, 10);
         if (hero == null) {
             writeLine(terminal, "Loading hero records...");
         } else {
@@ -26,7 +27,7 @@ public class DungeonCrawler {
         }
         writeLine(terminal, "Dungeon Crawler started.");
         writeLine(terminal, "");
-        writeLine(terminal, "Game loop is ready to connect to the dungeon implementation.");
+        handleRoom(terminal, dungeon.getCurrentRoom());
     }
 
     Hero createHero(final String theClassName, final String theName) {
@@ -42,10 +43,20 @@ public class DungeonCrawler {
         }
     }
 
+    Dungeon createDungeon() {
+        return new Dungeon(10, 10);
+    }
+
     public void saveGame(String filename){}
     public void loadGame(String filename){}
     private void playTurn(){}
-    private void handleRoom(Room r){}
+    private void handleRoom(Appendable terminal, Room r) {
+        writeLine(terminal, "Current Room:");
+        writeLine(terminal, r.toString());
+        writeLine(terminal, "");
+        writeLine(terminal, "Available exits:");
+        writeLine(terminal, exitsFor(r));
+    }
     private void battle(Hero h, Monster m){}
 
     private static void writeLine(Appendable terminal, String text) {
@@ -58,5 +69,25 @@ public class DungeonCrawler {
 
     private static String percent(final double theChance) {
         return Math.round(theChance * 100) + "%";
+    }
+
+    private static String exitsFor(final Room theRoom) {
+        String exits = "";
+        if (theRoom.workingDoor(Direction.NORTH)) {
+            exits += "north ";
+        }
+        if (theRoom.workingDoor(Direction.EAST)) {
+            exits += "east ";
+        }
+        if (theRoom.workingDoor(Direction.SOUTH)) {
+            exits += "south ";
+        }
+        if (theRoom.workingDoor(Direction.WEST)) {
+            exits += "west ";
+        }
+        if (exits.isEmpty()) {
+            return "none";
+        }
+        return exits.trim();
     }
 }
