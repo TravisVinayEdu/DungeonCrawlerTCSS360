@@ -191,6 +191,14 @@ public class Room {
         monster = null;
     }
 
+    public void setHealingPotion(boolean b) {
+        if (!isEntrance && !isExit) healingPotion = b;
+    }
+
+    public void setVisionPotion(boolean b) {
+        if (!isEntrance && !isExit) visionPotion = b;
+    }
+
     private int doorIndex(Direction d) {
         if (d == null) {
             throw new IllegalArgumentException("Direction cannot be null.");

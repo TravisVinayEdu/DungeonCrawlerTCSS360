@@ -104,5 +104,4 @@ public abstract class Hero extends DungeonCharacter {
                 + System.lineSeparator() + "Total Vision Potions: " + myVisionPotions
                 + System.lineSeparator() + "Pillar Pieces Found: " + myPillars;
     }
-
 }

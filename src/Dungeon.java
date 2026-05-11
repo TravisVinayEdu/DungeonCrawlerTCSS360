@@ -29,6 +29,25 @@ public class Dungeon {
         generateMaze();
     }
 
+    // used for loading in a saved game
+    Dungeon(Room[][] maze, int width, int height,
+            int heroRow, int heroCol, boolean[][] discovered) {
+        this.myWidth  = width;
+        this.myHeight = height;
+        this.maze     = maze;
+        this.heroRow  = heroRow;
+        this.heroCol  = heroCol;
+        this.discoveredMaze = new Room[height][width];
+        for (int r = 0; r < height; r++) {
+            for (int c = 0; c < width; c++) {
+                if (discovered[r][c]) {
+                    this.discoveredMaze[r][c] = maze[r][c];
+                }
+            }
+        }
+        this.entrance = maze[0][0];
+    }
+
     private void generateMaze() {
         for (int row = 0; row < myHeight; row++) {
             for (int col = 0; col < myWidth; col++) {
