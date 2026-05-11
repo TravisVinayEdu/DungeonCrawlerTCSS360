@@ -31,6 +31,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color PROMPT = new Color(106, 171, 115);
     private static final Color INPUT_BACKGROUND = new Color(39, 40, 44);
     private static final Color BORDER = new Color(70, 73, 78);
+    private static final Color VALID_MOVE_BORDER = new Color(80, 200, 120);
+    private static final Color INVALID_MOVE_BORDER = new Color(255, 85, 85);
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
     private static final Font TERMINAL_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 15);
@@ -48,6 +50,15 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myEastButton;
     private JButton mySouthButton;
     private JButton myWestButton;
+    private Battle myBattle;
+    private JTextArea myBattleHeroDisplay;
+    private JTextArea myBattleMonsterDisplay;
+    private JTextArea myBattleLogDisplay;
+    private JButton myBattleAttackButton;
+    private JButton myBattleSpecialButton;
+    private JButton myBattleHealButton;
+    private JButton myBattleVisionButton;
+    private JButton myBattleRunButton;
 
     public TerminalWindow(final DungeonCrawler theGame) {
         super("Dungeon Crawler Terminal");
@@ -375,12 +386,17 @@ public class TerminalWindow extends JFrame implements Appendable {
     private void showGame(final Hero theHero) {
         myHero = theHero;
         myDungeon = myGame.createDungeon();
+        showDungeonView();
+        resolveCurrentRoom("You enter the dungeon.");
+        updateGameView();
+    }
 
+    private void showDungeonView() {
         JPanel panel = new JPanel(new BorderLayout(14, 14));
         panel.setBackground(BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
 
-        panel.add(buildGameHeader(theHero), BorderLayout.NORTH);
+        panel.add(buildGameHeader(myHero), BorderLayout.NORTH);
         panel.add(buildMapPanel(), BorderLayout.CENTER);
         panel.add(buildSidePanel(), BorderLayout.WEST);
         panel.add(buildMovementPanel(), BorderLayout.SOUTH);
@@ -388,7 +404,6 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         setTitle("Dungeon Crawler");
         setContentPane(panel);
-        resolveCurrentRoom("You enter the dungeon.");
         updateGameView();
         revalidate();
         repaint();
@@ -484,10 +499,10 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         controls.setBackground(BACKGROUND);
-        myNorthButton = buildMoveButton("North", Direction.NORTH);
-        myEastButton = buildMoveButton("East", Direction.EAST);
-        mySouthButton = buildMoveButton("South", Direction.SOUTH);
-        myWestButton = buildMoveButton("West", Direction.WEST);
+        myNorthButton = buildMoveButton("[W] North", Direction.NORTH);
+        myEastButton = buildMoveButton("[D] East", Direction.EAST);
+        mySouthButton = buildMoveButton("[S] South", Direction.SOUTH);
+        myWestButton = buildMoveButton("[A] West", Direction.WEST);
         controls.add(myNorthButton);
         controls.add(myEastButton);
         controls.add(mySouthButton);
@@ -500,6 +515,7 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private JButton buildMoveButton(final String theText, final Direction theDirection) {
         JButton button = buildButton(theText);
+        button.setBorder(buildMoveButtonBorder(BORDER));
         button.addActionListener(event -> moveHero(theDirection));
         return button;
     }
@@ -512,6 +528,10 @@ public class TerminalWindow extends JFrame implements Appendable {
         bindMovementKey(inputMap, actionMap, "RIGHT", Direction.EAST);
         bindMovementKey(inputMap, actionMap, "DOWN", Direction.SOUTH);
         bindMovementKey(inputMap, actionMap, "LEFT", Direction.WEST);
+        bindMovementKey(inputMap, actionMap, "pressed W", Direction.NORTH);
+        bindMovementKey(inputMap, actionMap, "pressed D", Direction.EAST);
+        bindMovementKey(inputMap, actionMap, "pressed S", Direction.SOUTH);
+        bindMovementKey(inputMap, actionMap, "pressed A", Direction.WEST);
     }
 
     private void bindMovementKey(final InputMap theInputMap,
@@ -533,14 +553,291 @@ public class TerminalWindow extends JFrame implements Appendable {
             return;
         }
 
-        if (!myDungeon.moveHero(theDirection)) {
+        final boolean moved = myDungeon.moveHero(theDirection);
+        if (!moved) {
             setStatus("There is no door that way.");
             updateGameView();
+            updateMoveFeedback(theDirection, false);
             return;
         }
 
         resolveCurrentRoom("Moved " + theDirection.name().toLowerCase() + ".");
         updateGameView();
+        updateMoveFeedback(theDirection, true);
+        enterBattleIfMonsterPresent();
+    }
+
+    private void enterBattleIfMonsterPresent() {
+        if (myHero == null || myDungeon == null || myHero.isFainted()) {
+            return;
+        }
+
+        Monster monster = myDungeon.getCurrentRoom().getMonster();
+        if (monster != null && !monster.isFainted()) {
+            showBattleScreen(monster);
+        }
+    }
+
+    private void updateMoveFeedback(final Direction theDirection,
+                                    final boolean theMoveWasValid) {
+        resetMoveButtonBorders();
+        JButton button = getMoveButton(theDirection);
+        if (button != null) {
+            button.setBorder(buildMoveButtonBorder(
+                    theMoveWasValid ? VALID_MOVE_BORDER : INVALID_MOVE_BORDER));
+            button.repaint();
+        }
+    }
+
+    private void resetMoveButtonBorders() {
+        resetMoveButtonBorder(myNorthButton);
+        resetMoveButtonBorder(myEastButton);
+        resetMoveButtonBorder(mySouthButton);
+        resetMoveButtonBorder(myWestButton);
+    }
+
+    private void resetMoveButtonBorder(final JButton theButton) {
+        if (theButton != null) {
+            theButton.setBorder(buildMoveButtonBorder(BORDER));
+        }
+    }
+
+    private JButton getMoveButton(final Direction theDirection) {
+        switch (theDirection) {
+            case NORTH:
+                return myNorthButton;
+            case EAST:
+                return myEastButton;
+            case SOUTH:
+                return mySouthButton;
+            case WEST:
+                return myWestButton;
+            default:
+                return null;
+        }
+    }
+
+    private javax.swing.border.Border buildMoveButtonBorder(final Color theBorderColor) {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(theBorderColor, 2),
+                BorderFactory.createEmptyBorder(9, 11, 9, 11));
+    }
+
+    private void showBattleScreen(final Monster theMonster) {
+        myBattle = new Battle(myHero, theMonster);
+
+        JPanel panel = new JPanel(new BorderLayout(14, 14));
+        panel.setBackground(BACKGROUND);
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+
+        panel.add(buildBattleHeader(), BorderLayout.NORTH);
+        panel.add(buildBattleLogPanel(), BorderLayout.CENTER);
+        panel.add(buildBattleHeroPanel(), BorderLayout.WEST);
+        panel.add(buildBattleMonsterPanel(), BorderLayout.EAST);
+        panel.add(buildBattleActionsPanel(), BorderLayout.SOUTH);
+
+        setTitle("Dungeon Crawler - Battle");
+        setContentPane(panel);
+        appendBattleLog("A " + myBattle.getMonster().getName() + " blocks your path.");
+        updateBattleView();
+        revalidate();
+        repaint();
+        pack();
+    }
+
+    private JPanel buildBattleHeader() {
+        JPanel header = new JPanel(new BorderLayout(0, 3));
+        header.setBackground(BACKGROUND);
+
+        JLabel title = new JLabel("Battle");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setForeground(DOOM_ACCENT);
+        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+
+        JLabel subtitle = new JLabel(myHero.getName() + " vs. "
+                + myBattle.getMonster().getName());
+        subtitle.setHorizontalAlignment(SwingConstants.CENTER);
+        subtitle.setForeground(FOREGROUND);
+        subtitle.setFont(TERMINAL_FONT);
+
+        header.add(title, BorderLayout.NORTH);
+        header.add(subtitle, BorderLayout.SOUTH);
+        return header;
+    }
+
+    private JPanel buildBattleHeroPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(BACKGROUND);
+        panel.setPreferredSize(new Dimension(250, 360));
+
+        JLabel label = buildCharacterLabel("Hero Status");
+        myBattleHeroDisplay = buildOutputArea();
+        myBattleHeroDisplay.setRows(14);
+        myBattleHeroDisplay.setColumns(22);
+
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(myBattleHeroDisplay, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildBattleMonsterPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(BACKGROUND);
+        panel.setPreferredSize(new Dimension(250, 360));
+
+        JLabel label = buildCharacterLabel("Monster Status");
+        myBattleMonsterDisplay = buildOutputArea();
+        myBattleMonsterDisplay.setRows(14);
+        myBattleMonsterDisplay.setColumns(22);
+
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(myBattleMonsterDisplay, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildBattleLogPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(BACKGROUND);
+
+        JLabel label = buildCharacterLabel("Battle Actions");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        myBattleLogDisplay = buildOutputArea();
+        myBattleLogDisplay.setRows(18);
+        myBattleLogDisplay.setColumns(44);
+
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(myBattleLogDisplay, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildBattleActionsPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        panel.setBackground(BACKGROUND);
+
+        myBattleAttackButton = buildButton("Attack");
+        myBattleSpecialButton = buildButton("Special Skill");
+        myBattleHealButton = buildButton("Healing Potion");
+        myBattleVisionButton = buildButton("Vision Potion");
+        myBattleRunButton = buildButton("Run");
+
+        myBattleAttackButton.addActionListener(
+                event -> handleBattleResult(myBattle.attack()));
+        myBattleSpecialButton.addActionListener(
+                event -> handleBattleResult(myBattle.specialSkill()));
+        myBattleHealButton.addActionListener(
+                event -> handleBattleResult(myBattle.useHealingPotion()));
+        myBattleVisionButton.addActionListener(
+                event -> handleBattleResult(myBattle.useVisionPotion()));
+        myBattleRunButton.addActionListener(event -> leaveBattleScreen());
+
+        panel.add(myBattleAttackButton);
+        panel.add(myBattleSpecialButton);
+        panel.add(myBattleHealButton);
+        panel.add(myBattleVisionButton);
+        panel.add(myBattleRunButton);
+        return panel;
+    }
+
+    private void handleBattleResult(final Battle.BattleResult theResult) {
+        appendBattleMessages(theResult);
+        if (theResult.isMonsterDefeated()
+                && myDungeon.getCurrentRoom().getMonster() == myBattle.getMonster()) {
+            myDungeon.getCurrentRoom().removeMonster();
+        }
+        updateBattleView();
+    }
+
+    private void leaveBattleScreen() {
+        String message = "Returned to the dungeon.";
+        if (myBattle != null && myBattle.isActive()) {
+            Battle.BattleResult result = myBattle.run();
+            appendBattleMessages(result);
+            message = lastBattleMessage(result, message);
+        }
+        myBattle = null;
+        showDungeonView();
+        setStatus(message);
+    }
+
+    private void updateBattleView() {
+        if (myBattleHeroDisplay != null) {
+            myBattleHeroDisplay.setText(buildBattleHeroText());
+        }
+        if (myBattleMonsterDisplay != null && myBattle != null) {
+            myBattleMonsterDisplay.setText(buildBattleMonsterText());
+        }
+
+        boolean active = myBattle != null && myBattle.isActive();
+        setBattleButtonEnabled(myBattleAttackButton, active);
+        setBattleButtonEnabled(myBattleSpecialButton, active);
+        setBattleButtonEnabled(myBattleHealButton,
+                active && myBattle.canUseHealingPotion());
+        setBattleButtonEnabled(myBattleVisionButton,
+                active && myBattle.canUseVisionPotion());
+        if (myBattleRunButton != null) {
+            myBattleRunButton.setText(active ? "Run" : "Return");
+            myBattleRunButton.setEnabled(myBattle != null);
+        }
+    }
+
+    private void setBattleButtonEnabled(final JButton theButton,
+                                        final boolean theEnabled) {
+        if (theButton != null) {
+            theButton.setEnabled(theEnabled);
+        }
+    }
+
+    private String buildBattleHeroText() {
+        return "Class: " + myHero.getClass().getSimpleName()
+                + System.lineSeparator() + "Name: " + myHero.getName()
+                + System.lineSeparator() + "HP: " + myHero.getHitPoints()
+                + "/" + myHero.getMaxHitPoints()
+                + System.lineSeparator() + "Damage: " + myHero.getMinDamage()
+                + "-" + myHero.getMaxDamage()
+                + System.lineSeparator() + "Speed: " + myHero.getAttackSpeed()
+                + System.lineSeparator() + "Hit Chance: " + percent(myHero.getHitChance())
+                + System.lineSeparator() + "Block Chance: " + percent(myHero.getChanceToBlock())
+                + System.lineSeparator() + "Healing Potions: " + myHero.getHealingPotions()
+                + System.lineSeparator() + "Vision Potions: " + myHero.getVisionPotions()
+                + System.lineSeparator() + "Pillars: " + myHero.getPillars();
+    }
+
+    private String buildBattleMonsterText() {
+        Monster monster = myBattle.getMonster();
+        return "Type: " + monster.getClass().getSimpleName()
+                + System.lineSeparator() + "Name: " + monster.getName()
+                + System.lineSeparator() + "HP: " + monster.getHitPoints()
+                + "/" + monster.getMaxHitPoints()
+                + System.lineSeparator() + "Damage: " + monster.getMinDamage()
+                + "-" + monster.getMaxDamage()
+                + System.lineSeparator() + "Speed: " + monster.getAttackSpeed()
+                + System.lineSeparator() + "Hit Chance: " + percent(monster.getHitChance())
+                + System.lineSeparator() + "Heal Chance: "
+                + percent(monster.getChanceToHeal())
+                + System.lineSeparator() + "Heal Range: "
+                + monster.getMinHeal() + "-" + monster.getMaxHeal();
+    }
+
+    private void appendBattleMessages(final Battle.BattleResult theResult) {
+        for (String message : theResult.getMessages()) {
+            appendBattleLog(message);
+        }
+    }
+
+    private String lastBattleMessage(final Battle.BattleResult theResult,
+                                     final String theFallback) {
+        if (theResult.getMessages().isEmpty()) {
+            return theFallback;
+        }
+        return theResult.getMessages().get(theResult.getMessages().size() - 1);
+    }
+
+    private void appendBattleLog(final String theText) {
+        if (myBattleLogDisplay != null) {
+            myBattleLogDisplay.append(theText + System.lineSeparator());
+            myBattleLogDisplay.setCaretPosition(
+                    myBattleLogDisplay.getDocument().getLength());
+        }
     }
 
     private void resolveCurrentRoom(final String theBaseMessage) {
