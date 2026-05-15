@@ -1,3 +1,15 @@
+package dungeoncrawler.controller;
+
+import dungeoncrawler.model.Direction;
+import dungeoncrawler.model.Dungeon;
+import dungeoncrawler.model.Room;
+import dungeoncrawler.model.characters.Hero;
+import dungeoncrawler.model.characters.Priestess;
+import dungeoncrawler.model.characters.Thief;
+import dungeoncrawler.model.characters.Warrior;
+import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.view.TerminalWindow;
+
 import java.io.IOException;
 
 import javax.swing.SwingUtilities;
@@ -30,7 +42,7 @@ public class DungeonCrawler {
         handleRoom(terminal, dungeon.getCurrentRoom());
     }
 
-    Hero createHero(final String theClassName, final String theName) {
+    public Hero createHero(final String theClassName, final String theName) {
         switch (theClassName) {
             case "Warrior":
                 return new Warrior(theName);
@@ -43,7 +55,7 @@ public class DungeonCrawler {
         }
     }
 
-    Dungeon createDungeon() {
+    public Dungeon createDungeon() {
         return new Dungeon(10, 10);
     }
 

@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 /**
  * A high-health monster that hits hard and heals infrequently.
  */

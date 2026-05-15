@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 import java.io.Serializable;
 import java.util.Random;
 

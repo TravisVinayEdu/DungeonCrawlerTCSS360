@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 /**
  * A fast monster with modest damage and a strong chance to recover.
  */
