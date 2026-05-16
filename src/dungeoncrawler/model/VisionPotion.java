@@ -1,3 +1,7 @@
+package dungeoncrawler.model;
+
+import dungeoncrawler.model.characters.Hero;
+
 public class VisionPotion extends Potion {
     public final static int VISION_RADIUS = 1;
 

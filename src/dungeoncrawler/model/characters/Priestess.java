@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 public class Priestess extends Hero {
     public static final int HP = 75;
     public static final int SPD = 5;

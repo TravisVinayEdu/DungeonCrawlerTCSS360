@@ -1,3 +1,10 @@
+package dungeoncrawler.model;
+
+import dungeoncrawler.model.characters.Gremlin;
+import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.model.characters.Ogre;
+import dungeoncrawler.model.characters.Skeleton;
+
 import java.util.Random;
 
 /**

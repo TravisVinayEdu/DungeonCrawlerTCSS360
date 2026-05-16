@@ -1,3 +1,7 @@
+package dungeoncrawler.model;
+
+import dungeoncrawler.model.characters.Hero;
+
 import java.io.Serializable;
 import java.util.Random;
 

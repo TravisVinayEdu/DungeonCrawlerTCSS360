@@ -1,3 +1,7 @@
+package dungeoncrawler.model;
+
+import dungeoncrawler.model.characters.Monster;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +34,7 @@ public class Dungeon {
     }
 
     // used for loading in a saved game
-    Dungeon(Room[][] maze, int width, int height,
+    public Dungeon(Room[][] maze, int width, int height,
             int heroRow, int heroCol, boolean[][] discovered) {
         this.myWidth  = width;
         this.myHeight = height;

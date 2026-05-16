@@ -1,3 +1,10 @@
+package dungeoncrawler.model.characters;
+
+import dungeoncrawler.model.HealingPotion;
+import dungeoncrawler.model.Pillar;
+import dungeoncrawler.model.Potion;
+import dungeoncrawler.model.VisionPotion;
+
 import java.util.EnumSet;
 import java.util.Set;
 

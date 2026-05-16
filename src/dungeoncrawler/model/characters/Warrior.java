@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 public class Warrior extends Hero{
 
     public static final int HP = 125;

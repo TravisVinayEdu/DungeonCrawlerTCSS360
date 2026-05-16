@@ -1,3 +1,10 @@
+package dungeoncrawler.combat;
+
+import dungeoncrawler.model.HealingPotion;
+import dungeoncrawler.model.characters.DungeonCharacter;
+import dungeoncrawler.model.characters.Hero;
+import dungeoncrawler.model.characters.Monster;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

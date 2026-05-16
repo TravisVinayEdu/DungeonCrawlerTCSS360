@@ -1,3 +1,18 @@
+package dungeoncrawler.persistence;
+
+import dungeoncrawler.model.Direction;
+import dungeoncrawler.model.Dungeon;
+import dungeoncrawler.model.Pillar;
+import dungeoncrawler.model.Room;
+import dungeoncrawler.model.characters.Gremlin;
+import dungeoncrawler.model.characters.Hero;
+import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.model.characters.Ogre;
+import dungeoncrawler.model.characters.Priestess;
+import dungeoncrawler.model.characters.Skeleton;
+import dungeoncrawler.model.characters.Thief;
+import dungeoncrawler.model.characters.Warrior;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

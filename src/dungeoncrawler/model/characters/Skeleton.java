@@ -1,3 +1,5 @@
+package dungeoncrawler.model.characters;
+
 /**
  * A balanced monster with steady damage and moderate healing.
  */
