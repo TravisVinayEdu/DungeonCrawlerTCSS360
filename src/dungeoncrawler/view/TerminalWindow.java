@@ -20,7 +20,9 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -56,9 +58,13 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
     private static final Dimension STARTING_SIZE = new Dimension(900, 650);
+    private static final Dimension BASE_SCREEN_SIZE = new Dimension(1366, 768);
+    private static final Dimension BASE_MINIMUM_SIZE = new Dimension(720, 460);
+    private static final Dimension LOWEST_MINIMUM_SIZE = new Dimension(520, 360);
+    private static final int SCREEN_MARGIN = 40;
     private static final String BASE_FONT_SIZE = "baseFontSize";
     private static final String FONT_STYLE = "fontStyle";
-    private static final double MIN_FONT_SCALE = 0.75;
+    private static final double MIN_FONT_SCALE = 0.60;
     private static final double MAX_FONT_SCALE = 1.6;
 
     private final DungeonCrawler myGame;
@@ -91,7 +97,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myInput = buildInputField();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(720, 460));
+        setMinimumSize(scaledMinimumSize());
         setLocationByPlatform(true);
         setContentPane(buildContentPane());
         bindInput();
@@ -101,7 +107,7 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     public void open() {
         pack();
-        setSize(STARTING_SIZE);
+        setSize(scaledStartingSize());
         setLocationRelativeTo(null);
         updateScaledFonts();
         setVisible(true);
@@ -800,6 +806,49 @@ public class TerminalWindow extends JFrame implements Appendable {
         repaint();
     }
 
+    private Dimension scaledStartingSize() {
+        Rectangle screen = usableScreenBounds();
+        int width = Math.min(scaledLength(STARTING_SIZE.width), availableWidth(screen));
+        int height = Math.min(scaledLength(STARTING_SIZE.height), availableHeight(screen));
+        Dimension minimum = scaledMinimumSize();
+        width = Math.max(minimum.width, width);
+        height = Math.max(minimum.height, height);
+        return new Dimension(width, height);
+    }
+
+    private Dimension scaledMinimumSize() {
+        Rectangle screen = usableScreenBounds();
+        int width = Math.max(LOWEST_MINIMUM_SIZE.width,
+                Math.min(scaledLength(BASE_MINIMUM_SIZE.width), availableWidth(screen)));
+        int height = Math.max(LOWEST_MINIMUM_SIZE.height,
+                Math.min(scaledLength(BASE_MINIMUM_SIZE.height), availableHeight(screen)));
+        return new Dimension(width, height);
+    }
+
+    private int scaledLength(final int theBaseLength) {
+        return Math.max(1, (int) Math.round(theBaseLength * screenScale()));
+    }
+
+    private double screenScale() {
+        Rectangle screen = usableScreenBounds();
+        double widthScale = screen.getWidth() / BASE_SCREEN_SIZE.getWidth();
+        double heightScale = screen.getHeight() / BASE_SCREEN_SIZE.getHeight();
+        return clamp(Math.min(widthScale, heightScale), MIN_FONT_SCALE, MAX_FONT_SCALE);
+    }
+
+    private Rectangle usableScreenBounds() {
+        return GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+    }
+
+    private int availableWidth(final Rectangle theScreen) {
+        return Math.max(LOWEST_MINIMUM_SIZE.width, theScreen.width - SCREEN_MARGIN);
+    }
+
+    private int availableHeight(final Rectangle theScreen) {
+        return Math.max(LOWEST_MINIMUM_SIZE.height, theScreen.height - SCREEN_MARGIN);
+    }
+
     private void setScalableFont(final JComponent theComponent,
                                  final int theStyle,
                                  final int theBaseSize) {
@@ -841,9 +890,16 @@ public class TerminalWindow extends JFrame implements Appendable {
         int width = Math.max(1, getWidth());
         int height = Math.max(1, getHeight());
         double currentArea = (double) width * height;
-        double startingArea = (double) STARTING_SIZE.width * STARTING_SIZE.height;
-        double scale = Math.sqrt(currentArea / startingArea);
-        return Math.max(MIN_FONT_SCALE, Math.min(MAX_FONT_SCALE, scale));
+        Dimension startingSize = scaledStartingSize();
+        double startingArea = (double) startingSize.width * startingSize.height;
+        double windowScale = Math.sqrt(currentArea / startingArea);
+        return clamp(screenScale() * windowScale, MIN_FONT_SCALE, MAX_FONT_SCALE);
+    }
+
+    private double clamp(final double theValue,
+                         final double theMinimum,
+                         final double theMaximum) {
+        return Math.max(theMinimum, Math.min(theMaximum, theValue));
     }
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
