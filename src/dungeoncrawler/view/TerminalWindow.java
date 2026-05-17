@@ -367,7 +367,11 @@ public class TerminalWindow extends JFrame implements Appendable {
             }
 
             Hero hero = myGame.createHero(getSelectedClassName(classGroup), heroName);
-            showGame(hero);
+            try {
+                showGame(hero);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         });
         nameField.addActionListener(beginButton.getActionListeners()[0]);
 
@@ -547,7 +551,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         return mySession.getBattle();
     }
 
-    private void showGame(final Hero theHero) {
+    private void showGame(final Hero theHero) throws SQLException {
         startNewSession(myGame.createSession(theHero));
     }
 

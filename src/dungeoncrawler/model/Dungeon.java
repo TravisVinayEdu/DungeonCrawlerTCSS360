@@ -1,7 +1,9 @@
 package dungeoncrawler.model;
 
 import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.persistence.MonsterDatabase;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,7 @@ public class Dungeon implements Serializable {
 
     private static final int MONSTER_CHANCE = 40;
 
-    public Dungeon(final int theWidth, final int theHeight) {
+    public Dungeon(final int theWidth, final int theHeight, MonsterDatabase db) throws SQLException {
         if (theWidth <= 0 || theHeight <= 0) {
             throw new IllegalArgumentException("Dungeon dimensions must be positive.");
         }
@@ -32,7 +34,7 @@ public class Dungeon implements Serializable {
         myHeight = theHeight;
         maze = new Room[myHeight][myWidth];
         discoveredMaze = new Room[myHeight][myWidth];
-        generateMaze();
+        generateMaze(db);
     }
 
     // used for loading in a saved game
@@ -54,7 +56,7 @@ public class Dungeon implements Serializable {
         this.entrance = maze[0][0];
     }
 
-    private void generateMaze() {
+    private void generateMaze(MonsterDatabase db) throws SQLException {
         for (int row = 0; row < myHeight; row++) {
             for (int col = 0; col < myWidth; col++) {
                 maze[row][col] = new Room(row, col);
@@ -72,7 +74,7 @@ public class Dungeon implements Serializable {
 
         removeUnavoidablePits();
         placePillars();
-        placeMonsters();
+        placeMonsters(db);
         discoverCurrentRoom();
     }
 
@@ -111,12 +113,22 @@ public class Dungeon implements Serializable {
         }
     }
 
-    private void placeMonsters() {
+    /*private void placeMonsters() {
         for (int i = 0; i < myHeight; i++) {
             for (int j = 0; j < myWidth; j++) {
                 if (maze[i][j].isEmpty()
                         && RANDOM.nextInt(100) < MONSTER_CHANCE) {
                     maze[i][j].setMonsters();
+                }
+            }
+        }
+    }*/
+
+    private void placeMonsters(MonsterDatabase db) throws SQLException {
+        for (int i = 0; i < myHeight; i++) {
+            for (int j = 0; j < myWidth; j++) {
+                if (maze[i][j].isEmpty() && RANDOM.nextInt(100) < MONSTER_CHANCE) {
+                    maze[i][j].setMonsters(db);
                 }
             }
         }

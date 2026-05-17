@@ -9,6 +9,11 @@ public abstract class DatabaseManager implements AutoCloseable {
     protected Connection conn;
 
     public DatabaseManager() throws SQLException {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("SQLite JDBC driver not found.", e);
+        }
         conn = DriverManager.getConnection(DB_URL);
         conn.setAutoCommit(false);
         initSchema();

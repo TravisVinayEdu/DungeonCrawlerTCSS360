@@ -1,11 +1,14 @@
 package dungeoncrawler.model;
 
+import dungeoncrawler.persistence.MonsterDatabase;
 import dungeoncrawler.model.characters.Gremlin;
 import dungeoncrawler.model.characters.Monster;
 import dungeoncrawler.model.characters.Ogre;
 import dungeoncrawler.model.characters.Skeleton;
 
 import java.io.Serializable;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -63,7 +66,7 @@ public class Room implements Serializable {
                 && monster == null;
     }
 
-    public void setMonsters() {
+    /*public void setMonsters() {
         int monsterChoice = RANDOM.nextInt(3);
         if (monsterChoice == 0) {
             monster = new Skeleton();
@@ -72,6 +75,12 @@ public class Room implements Serializable {
         } else {
             monster = new Ogre();
         }
+    }*/
+
+    public void setMonsters(MonsterDatabase db) throws SQLException {
+        List<String> names = db.getAllMonsterNames();
+        String chosen = names.get(RANDOM.nextInt(names.size()));
+        monster = db.getMonsterByName(chosen);
     }
 
     public void setMonstersManual(Monster m) {

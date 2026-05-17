@@ -8,6 +8,7 @@ import dungeoncrawler.model.characters.Priestess;
 import dungeoncrawler.model.characters.Thief;
 import dungeoncrawler.model.characters.Warrior;
 import dungeoncrawler.persistence.FileSaveManager;
+import dungeoncrawler.persistence.MonsterDatabase;
 import dungeoncrawler.persistence.SaveManager;
 import dungeoncrawler.view.TerminalWindow;
 
@@ -22,13 +23,14 @@ public class DungeonCrawler {
         SwingUtilities.invokeLater(() -> new TerminalWindow(new DungeonCrawler()).open());
     }
 
-    void runGame(Appendable terminal) {
+    void runGame(Appendable terminal) throws SQLException {
         runGame(terminal, null);
     }
 
-    void runGame(Appendable terminal, Hero hero) {
+    void runGame(Appendable terminal, Hero hero) throws SQLException {
         writeLine(terminal, "Initializing dungeon systems...");
-        Dungeon dungeon = new Dungeon(10, 10);
+        MonsterDatabase temp = new MonsterDatabase();
+        Dungeon dungeon = new Dungeon(10, 10, temp);
         if (hero == null) {
             writeLine(terminal, "Loading hero records...");
         } else {
@@ -58,11 +60,12 @@ public class DungeonCrawler {
         }
     }
 
-    public Dungeon createDungeon() {
-        return new Dungeon(10, 10);
+    public Dungeon createDungeon() throws SQLException {
+        MonsterDatabase db = new MonsterDatabase();
+        return new Dungeon(10, 10, db);
     }
 
-    public GameSession createSession(final Hero theHero) {
+    public GameSession createSession(final Hero theHero) throws SQLException {
         return new GameSession(theHero, createDungeon());
     }
 

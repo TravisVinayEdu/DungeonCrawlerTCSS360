@@ -52,6 +52,17 @@ public class MonsterDatabase extends DatabaseManager {
         conn.commit();
     }
 
+    public List<String> getAllMonsterNames() throws SQLException {
+        ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT name FROM monster"
+        );
+        List<String> names = new ArrayList<>();
+        while (rs.next()) {
+            names.add(rs.getString("name"));
+        }
+        return names;
+    }
+
     public Monster getMonsterByName(String name) throws SQLException {
         PreparedStatement stmt = conn.prepareStatement(
                 "SELECT * FROM monster WHERE name = ?"
