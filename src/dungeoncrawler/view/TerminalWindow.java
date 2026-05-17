@@ -16,11 +16,14 @@ import dungeoncrawler.model.characters.Warrior;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;
@@ -28,6 +31,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -51,7 +55,11 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color INVALID_MOVE_BORDER = new Color(255, 85, 85);
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
-    private static final Font TERMINAL_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 15);
+    private static final Dimension STARTING_SIZE = new Dimension(900, 650);
+    private static final String BASE_FONT_SIZE = "baseFontSize";
+    private static final String FONT_STYLE = "fontStyle";
+    private static final double MIN_FONT_SCALE = 0.75;
+    private static final double MAX_FONT_SCALE = 1.6;
 
     private final DungeonCrawler myGame;
     private final JTextArea myOutput;
@@ -87,11 +95,15 @@ public class TerminalWindow extends JFrame implements Appendable {
         setLocationByPlatform(true);
         setContentPane(buildContentPane());
         bindInput();
+        bindFontScaling();
         printIntro();
     }
 
     public void open() {
         pack();
+        setSize(STARTING_SIZE);
+        setLocationRelativeTo(null);
+        updateScaledFonts();
         setVisible(true);
         myInput.requestFocusInWindow();
     }
@@ -121,12 +133,8 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.setBackground(BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
 
-        JScrollPane scrollPane = new JScrollPane(myOutput);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
-        scrollPane.getViewport().setBackground(EDITOR_BACKGROUND);
-
         panel.add(buildHeader(), BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myOutput), BorderLayout.CENTER);
         panel.add(myInput, BorderLayout.SOUTH);
         return panel;
     }
@@ -139,12 +147,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Dungeon Crawler");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel authors = new JLabel("Pavlo Puzik    Travis Vinay    Andrew DeFord");
         authors.setHorizontalAlignment(SwingConstants.CENTER);
         authors.setForeground(FOREGROUND);
-        authors.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        setScalableFont(authors, Font.PLAIN, 13);
 
         header.add(title, BorderLayout.NORTH);
         header.add(authors, BorderLayout.SOUTH);
@@ -159,7 +167,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         output.setBackground(EDITOR_BACKGROUND);
         output.setForeground(FOREGROUND);
         output.setCaretColor(CARET);
-        output.setFont(TERMINAL_FONT);
+        setScalableFont(output, Font.PLAIN, 15);
         output.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         return output;
     }
@@ -169,7 +177,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         input.setBackground(INPUT_BACKGROUND);
         input.setForeground(FOREGROUND);
         input.setCaretColor(CARET);
-        input.setFont(TERMINAL_FONT);
+        setScalableFont(input, Font.PLAIN, 15);
         input.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)));
@@ -178,6 +186,15 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void bindInput() {
         myInput.addActionListener(this::handleCommand);
+    }
+
+    private void bindFontScaling() {
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(final ComponentEvent theEvent) {
+                updateScaledFonts();
+            }
+        });
     }
 
     private void handleCommand(final ActionEvent theEvent) {
@@ -257,7 +274,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JTextField nameField = buildInputField();
         JLabel errorLabel = new JLabel(" ");
         errorLabel.setForeground(new Color(255, 121, 198));
-        errorLabel.setFont(TERMINAL_FONT);
+        setScalableFont(errorLabel, Font.PLAIN, 15);
 
         JPanel namePanel = new JPanel(new BorderLayout(0, 6));
         namePanel.setBackground(BACKGROUND);
@@ -316,9 +333,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.add(bottomPanel, BorderLayout.SOUTH);
 
         setContentPane(panel);
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
         nameField.requestFocusInWindow();
     }
 
@@ -326,7 +341,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Hero Creation");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
         return title;
     }
 
@@ -335,7 +350,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         button.setActionCommand(theClassName);
         button.setBackground(EDITOR_BACKGROUND);
         button.setForeground(FOREGROUND);
-        button.setFont(TERMINAL_FONT);
+        setScalableFont(button, Font.PLAIN, 15);
         button.setVerticalAlignment(SwingConstants.TOP);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -371,7 +386,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JLabel buildCharacterLabel(final String theText) {
         JLabel label = new JLabel(theText);
         label.setForeground(DOOM_ACCENT);
-        label.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        setScalableFont(label, Font.BOLD, 16);
         return label;
     }
 
@@ -379,7 +394,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JButton button = new JButton(theText);
         button.setBackground(INPUT_BACKGROUND);
         button.setForeground(FOREGROUND);
-        button.setFont(TERMINAL_FONT);
+        setScalableFont(button, Font.PLAIN, 15);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -393,9 +408,7 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void showTerminal() {
         setContentPane(buildContentPane());
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
         myInput.requestFocusInWindow();
     }
 
@@ -421,9 +434,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         setTitle("Dungeon Crawler");
         setContentPane(panel);
         updateGameView();
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
     }
 
     private JPanel buildGameHeader(final Hero theHero) {
@@ -433,13 +444,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Dungeon");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel subtitle = new JLabel(theHero.getName() + " the "
                 + theHero.getClass().getSimpleName());
         subtitle.setHorizontalAlignment(SwingConstants.CENTER);
         subtitle.setForeground(FOREGROUND);
-        subtitle.setFont(TERMINAL_FONT);
+        setScalableFont(subtitle, Font.PLAIN, 15);
 
         header.add(title, BorderLayout.NORTH);
         header.add(subtitle, BorderLayout.SOUTH);
@@ -454,19 +465,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         label.setHorizontalAlignment(SwingConstants.CENTER);
         myMapDisplay = buildOutputArea();
         myMapDisplay.setRows(22);
-        myMapDisplay.setColumns(54);
+        myMapDisplay.setColumns(44);
         myMapDisplay.setLineWrap(false);
         myMapDisplay.setWrapStyleWord(false);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myMapDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myMapDisplay), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel buildSidePanel() {
         JPanel panel = new JPanel(new GridLayout(2, 1, 0, 14));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 420));
+        panel.setPreferredSize(new Dimension(260, 420));
+        panel.setMinimumSize(new Dimension(210, 260));
 
         panel.add(buildHeroPanel());
         panel.add(buildRoomPanel());
@@ -483,7 +495,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myHeroDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myHeroDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myHeroDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -500,7 +512,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myRoomDisplay.setWrapStyleWord(false);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myRoomDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myRoomDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -511,9 +523,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         myStatusLabel = new JLabel(" ");
         myStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         myStatusLabel.setForeground(FOREGROUND);
-        myStatusLabel.setFont(TERMINAL_FONT);
+        setScalableFont(myStatusLabel, Font.PLAIN, 15);
 
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel controls = new JPanel(new GridLayout(1, 4, 10, 0));
         controls.setBackground(BACKGROUND);
         myNorthButton = buildMoveButton("[W] North", Direction.NORTH);
         myEastButton = buildMoveButton("[D] East", Direction.EAST);
@@ -656,9 +668,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         setContentPane(panel);
         appendBattleLog("A " + myBattle.getMonster().getName() + " blocks your path.");
         updateBattleView();
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
     }
 
     private JPanel buildBattleHeader() {
@@ -668,13 +678,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Battle");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel subtitle = new JLabel(myHero.getName() + " vs. "
                 + myBattle.getMonster().getName());
         subtitle.setHorizontalAlignment(SwingConstants.CENTER);
         subtitle.setForeground(FOREGROUND);
-        subtitle.setFont(TERMINAL_FONT);
+        setScalableFont(subtitle, Font.PLAIN, 15);
 
         header.add(title, BorderLayout.NORTH);
         header.add(subtitle, BorderLayout.SOUTH);
@@ -685,6 +695,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
         panel.setPreferredSize(new Dimension(250, 360));
+        panel.setMinimumSize(new Dimension(200, 240));
 
         JLabel label = buildCharacterLabel("Hero Status");
         myBattleHeroDisplay = buildOutputArea();
@@ -692,7 +703,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleHeroDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleHeroDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleHeroDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -700,6 +711,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
         panel.setPreferredSize(new Dimension(250, 360));
+        panel.setMinimumSize(new Dimension(200, 240));
 
         JLabel label = buildCharacterLabel("Monster Status");
         myBattleMonsterDisplay = buildOutputArea();
@@ -707,7 +719,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleMonsterDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleMonsterDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleMonsterDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -722,12 +734,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleLogDisplay.setColumns(44);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleLogDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleLogDisplay), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel buildBattleActionsPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 5, 10, 0));
         panel.setBackground(BACKGROUND);
 
         myBattleAttackButton = buildButton("Attack");
@@ -752,6 +764,67 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.add(myBattleVisionButton);
         panel.add(myBattleRunButton);
         return panel;
+    }
+
+    private JScrollPane wrapTextArea(final JTextArea theTextArea) {
+        JScrollPane scrollPane = new JScrollPane(theTextArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
+        scrollPane.getViewport().setBackground(EDITOR_BACKGROUND);
+        scrollPane.setMinimumSize(new Dimension(0, 0));
+        theTextArea.setMinimumSize(new Dimension(0, 0));
+        return scrollPane;
+    }
+
+    private void refreshContent() {
+        updateScaledFonts();
+        revalidate();
+        repaint();
+    }
+
+    private void setScalableFont(final JComponent theComponent,
+                                 final int theStyle,
+                                 final int theBaseSize) {
+        theComponent.putClientProperty(BASE_FONT_SIZE, theBaseSize);
+        theComponent.putClientProperty(FONT_STYLE, theStyle);
+        theComponent.setFont(buildScaledFont(theStyle, theBaseSize));
+    }
+
+    private void updateScaledFonts() {
+        updateScaledFonts(getContentPane());
+    }
+
+    private void updateScaledFonts(final Component theComponent) {
+        Object baseSize = null;
+        Object style = null;
+        if (theComponent instanceof JComponent) {
+            JComponent component = (JComponent) theComponent;
+            baseSize = component.getClientProperty(BASE_FONT_SIZE);
+            style = component.getClientProperty(FONT_STYLE);
+        }
+
+        if (baseSize instanceof Integer && style instanceof Integer) {
+            theComponent.setFont(buildScaledFont((Integer) style, (Integer) baseSize));
+        }
+
+        if (theComponent instanceof Container) {
+            for (Component child : ((Container) theComponent).getComponents()) {
+                updateScaledFonts(child);
+            }
+        }
+    }
+
+    private Font buildScaledFont(final int theStyle, final int theBaseSize) {
+        int scaledSize = Math.max(1, (int) Math.round(theBaseSize * currentFontScale()));
+        return new Font(Font.MONOSPACED, theStyle, scaledSize);
+    }
+
+    private double currentFontScale() {
+        int width = Math.max(1, getWidth());
+        int height = Math.max(1, getHeight());
+        double currentArea = (double) width * height;
+        double startingArea = (double) STARTING_SIZE.width * STARTING_SIZE.height;
+        double scale = Math.sqrt(currentArea / startingArea);
+        return Math.max(MIN_FONT_SCALE, Math.min(MAX_FONT_SCALE, scale));
     }
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
