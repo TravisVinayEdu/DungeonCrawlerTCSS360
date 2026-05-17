@@ -253,16 +253,35 @@ public class TerminalWindow extends JFrame implements Appendable {
         println("4. clear - Clear the terminal");
         println("5. exit  - Close the game");
         println("");
-        printCentered("#########################");
-        printCentered("# S #     #       #     #");
-        printCentered("# ### ### # ##### # ### #");
-        printCentered("#   # #   #     #   #   #");
-        printCentered("### # # ##### # ##### ###");
-        printCentered("#   # #     # #     #   #");
-        printCentered("# ### ##### # ##### ### #");
-        printCentered("#     #     #     #   E #");
-        printCentered("#########################");
-        printCentered("S = Start      E = Exit");
+        String[] mapPreview = {
+                "+---+---+---+---+---+---+---+",
+                "| S     | H     |       | M |",
+                "+   +---+   +   +---+   +   +",
+                "|   | A     |       | P     |",
+                "+   +   +---+---+   +---+   +",
+                "|       | @     | V     |   |",
+                "+---+   +   +---+---+   +   +",
+                "| I     |       | O     | X |",
+                "+---+---+---+---+---+---+---+"
+        };
+        String[] symbolTable = {
+                "+--------+---------------+",
+                "| Symbol | Meaning       |",
+                "+--------+---------------+",
+                "| S      | Start         |",
+                "| X      | Exit          |",
+                "| @      | Hero          |",
+                "| H      | Healing       |",
+                "| V      | Vision        |",
+                "| P      | Pit           |",
+                "| M      | Monster       |",
+                "| A/E/I/O| Pillars       |",
+                "+--------+---------------+"
+        };
+        for (int i = 0; i < symbolTable.length; i++) {
+            String mapLine = i < mapPreview.length ? mapPreview[i] : " ".repeat(29);
+            printCentered(mapLine + "    " + symbolTable[i]);
+        }
         println("");
     }
 
