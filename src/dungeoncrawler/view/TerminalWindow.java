@@ -2,12 +2,10 @@ package dungeoncrawler.view;
 
 import dungeoncrawler.combat.Battle;
 import dungeoncrawler.controller.DungeonCrawler;
+import dungeoncrawler.controller.GameSession;
 import dungeoncrawler.model.Direction;
 import dungeoncrawler.model.Dungeon;
-import dungeoncrawler.model.HealingPotion;
-import dungeoncrawler.model.Pillar;
 import dungeoncrawler.model.Room;
-import dungeoncrawler.model.VisionPotion;
 import dungeoncrawler.model.characters.Hero;
 import dungeoncrawler.model.characters.Monster;
 import dungeoncrawler.model.characters.Priestess;
@@ -25,6 +23,8 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -62,8 +62,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private final DungeonMapRenderer myMapRenderer;
     private final JTextArea myOutput;
     private final JTextField myInput;
-    private Hero myHero;
-    private Dungeon myDungeon;
+    private GameSession mySession;
     private JTextArea myMapDisplay;
     private JTextArea myRoomDisplay;
     private JTextArea myHeroDisplay;
@@ -72,7 +71,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myEastButton;
     private JButton mySouthButton;
     private JButton myWestButton;
-    private Battle myBattle;
+    private JButton mySaveButton;
+    private JButton myNewGameButton;
     private JTextArea myBattleHeroDisplay;
     private JTextArea myBattleMonsterDisplay;
     private JTextArea myBattleLogDisplay;
@@ -81,6 +81,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myBattleHealButton;
     private JButton myBattleVisionButton;
     private JButton myBattleRunButton;
+    private JButton myBattleNewGameButton;
 
     public TerminalWindow(final DungeonCrawler theGame) {
         super("Dungeon Crawler Terminal");
@@ -268,17 +269,18 @@ public class TerminalWindow extends JFrame implements Appendable {
             case "start":
             case "launch":
             case "play":
+            case "new":
+            case "new game":
                 showCharacterCreation();
                 break;
             case "2":
             case "load":
             case "load game":
-                myGame.loadGame("save.dat");
-                println("Load game selected.");
+                showLoadGame();
                 break;
             case "3":
             case "help":
-                println("Commands: 1/start, 2/load, 3/help, 4/clear, 5/exit");
+                println("Commands: 1/start/new, 2/load, 3/help, 4/clear, 5/exit");
                 break;
             case "4":
             case "clear":
@@ -300,7 +302,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private void printIntro() {
         println("Dungeon Crawler Terminal");
         println("Choose a command by typing its number or name:");
-        println("1. start - Launch the game");
+        println("1. start - Launch a new game");
         println("2. load  - Load a saved game");
         println("3. help  - Show commands");
         println("4. clear - Clear the terminal");
@@ -383,6 +385,81 @@ public class TerminalWindow extends JFrame implements Appendable {
         nameField.requestFocusInWindow();
     }
 
+    private void showLoadGame() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BACKGROUND);
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+
+        JLabel title = new JLabel("Load Game");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setForeground(DOOM_ACCENT);
+        setScalableFont(title, Font.BOLD, 30);
+
+        JPanel savePanel = new JPanel(new GridLayout(0, 1, 0, 10));
+        savePanel.setBackground(BACKGROUND);
+
+        try {
+            List<String> saves = myGame.listSaves();
+            if (saves.isEmpty()) {
+                JLabel emptyLabel = buildCharacterLabel("No saved games found.");
+                emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                savePanel.add(emptyLabel);
+            } else {
+                for (String save : saves) {
+                    JButton loadButton = buildButton(save);
+                    loadButton.addActionListener(event -> loadSelectedGame(save));
+                    savePanel.add(loadButton);
+                }
+            }
+        } catch (SQLException | IOException exception) {
+            JLabel errorLabel = buildCharacterLabel("Unable to read saves: "
+                    + exception.getMessage());
+            errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            savePanel.add(errorLabel);
+        }
+
+        JPanel controls = new JPanel(new GridLayout(1, 2, 10, 0));
+        controls.setBackground(BACKGROUND);
+        JButton backButton = buildButton("Back");
+        JButton newGameButton = buildButton("New Game");
+        backButton.addActionListener(event -> showTerminal());
+        newGameButton.addActionListener(event -> showCharacterCreation());
+        controls.add(backButton);
+        controls.add(newGameButton);
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(wrapTextAreaPanel(savePanel), BorderLayout.CENTER);
+        panel.add(controls, BorderLayout.SOUTH);
+
+        setContentPane(panel);
+        refreshContent();
+    }
+
+    private JScrollPane wrapTextAreaPanel(final JPanel thePanel) {
+        JScrollPane scrollPane = new JScrollPane(thePanel);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
+        scrollPane.getViewport().setBackground(BACKGROUND);
+        return scrollPane;
+    }
+
+    private void loadSelectedGame(final String theSaveText) {
+        try {
+            GameSession session = myGame.loadGame(parseSaveId(theSaveText));
+            startLoadedSession(session);
+        } catch (SQLException | IOException | IllegalArgumentException exception) {
+            println("Unable to load game: " + exception.getMessage());
+            showTerminal();
+        }
+    }
+
+    private long parseSaveId(final String theSaveText) {
+        int end = theSaveText.indexOf(']');
+        if (!theSaveText.startsWith("[") || end < 0) {
+            throw new IllegalArgumentException("Save id is missing.");
+        }
+        return Long.parseLong(theSaveText.substring(1, end));
+    }
+
     private JLabel buildCreationHeader() {
         JLabel title = new JLabel("Hero Creation");
         title.setHorizontalAlignment(SwingConstants.CENTER);
@@ -458,12 +535,37 @@ public class TerminalWindow extends JFrame implements Appendable {
         myInput.requestFocusInWindow();
     }
 
+    private Hero hero() {
+        return mySession.getHero();
+    }
+
+    private Dungeon dungeon() {
+        return mySession.getDungeon();
+    }
+
+    private Battle battle() {
+        return mySession.getBattle();
+    }
+
     private void showGame(final Hero theHero) {
-        myHero = theHero;
-        myDungeon = myGame.createDungeon();
+        startNewSession(myGame.createSession(theHero));
+    }
+
+    private void startNewSession(final GameSession theSession) {
+        mySession = theSession;
         showDungeonView();
-        resolveCurrentRoom("You enter the dungeon.");
+        GameSession.MoveResult result = mySession.enterCurrentRoom("You enter the dungeon.");
+        setStatus(result.message());
         updateGameView();
+        if (result.enteredBattle()) {
+            showBattleScreen();
+        }
+    }
+
+    private void startLoadedSession(final GameSession theSession) {
+        mySession = theSession;
+        showDungeonView();
+        setStatus("Loaded saved game.");
     }
 
     private void showDungeonView() {
@@ -471,7 +573,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.setBackground(BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
 
-        panel.add(buildGameHeader(myHero), BorderLayout.NORTH);
+        panel.add(buildGameHeader(hero()), BorderLayout.NORTH);
         panel.add(buildMapPanel(), BorderLayout.CENTER);
         panel.add(buildSidePanel(), BorderLayout.WEST);
         panel.add(buildMovementPanel(), BorderLayout.SOUTH);
@@ -571,16 +673,22 @@ public class TerminalWindow extends JFrame implements Appendable {
         myStatusLabel.setForeground(FOREGROUND);
         setScalableFont(myStatusLabel, Font.PLAIN, 15);
 
-        JPanel controls = new JPanel(new GridLayout(1, 4, 10, 0));
+        JPanel controls = new JPanel(new GridLayout(1, 6, 10, 0));
         controls.setBackground(BACKGROUND);
         myNorthButton = buildMoveButton("[W] North", Direction.NORTH);
         myEastButton = buildMoveButton("[D] East", Direction.EAST);
         mySouthButton = buildMoveButton("[S] South", Direction.SOUTH);
         myWestButton = buildMoveButton("[A] West", Direction.WEST);
+        mySaveButton = buildButton("Save");
+        myNewGameButton = buildButton("New Game");
+        mySaveButton.addActionListener(event -> saveCurrentGame());
+        myNewGameButton.addActionListener(event -> showCharacterCreation());
         controls.add(myNorthButton);
         controls.add(myEastButton);
         controls.add(mySouthButton);
         controls.add(myWestButton);
+        controls.add(mySaveButton);
+        controls.add(myNewGameButton);
 
         panel.add(myStatusLabel, BorderLayout.NORTH);
         panel.add(controls, BorderLayout.CENTER);
@@ -592,6 +700,18 @@ public class TerminalWindow extends JFrame implements Appendable {
         button.setBorder(buildMoveButtonBorder(BORDER));
         button.addActionListener(event -> moveHero(theDirection));
         return button;
+    }
+
+    private void saveCurrentGame() {
+        if (mySession == null) {
+            return;
+        }
+        try {
+            long saveId = myGame.saveGame(mySession);
+            setStatus("Game saved as save #" + saveId + ".");
+        } catch (SQLException | IOException exception) {
+            setStatus("Unable to save game: " + exception.getMessage());
+        }
     }
 
     private void bindMovementKeys(final JPanel thePanel) {
@@ -623,32 +743,16 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private void moveHero(final Direction theDirection) {
-        if (myHero == null || myDungeon == null || myHero.isFainted()) {
+        if (mySession == null || hero().isFainted()) {
             return;
         }
 
-        final boolean moved = myDungeon.moveHero(theDirection);
-        if (!moved) {
-            setStatus("There is no door that way.");
-            updateGameView();
-            updateMoveFeedback(theDirection, false);
-            return;
-        }
-
-        resolveCurrentRoom("Moved " + theDirection.name().toLowerCase() + ".");
+        GameSession.MoveResult result = mySession.moveHero(theDirection);
+        setStatus(result.message());
         updateGameView();
-        updateMoveFeedback(theDirection, true);
-        enterBattleIfMonsterPresent();
-    }
-
-    private void enterBattleIfMonsterPresent() {
-        if (myHero == null || myDungeon == null || myHero.isFainted()) {
-            return;
-        }
-
-        Monster monster = myDungeon.getCurrentRoom().getMonster();
-        if (monster != null && !monster.isFainted()) {
-            showBattleScreen(monster);
+        updateMoveFeedback(theDirection, result.moved());
+        if (result.enteredBattle()) {
+            showBattleScreen();
         }
     }
 
@@ -697,9 +801,7 @@ public class TerminalWindow extends JFrame implements Appendable {
                 BorderFactory.createEmptyBorder(9, 11, 9, 11));
     }
 
-    private void showBattleScreen(final Monster theMonster) {
-        myBattle = new Battle(myHero, theMonster);
-
+    private void showBattleScreen() {
         JPanel panel = new JPanel(new BorderLayout(14, 14));
         panel.setBackground(BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
@@ -712,7 +814,7 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         setTitle("Dungeon Crawler - Battle");
         setContentPane(panel);
-        appendBattleLog("A " + myBattle.getMonster().getName() + " blocks your path.");
+        appendBattleLog("A " + battle().getMonster().getName() + " blocks your path.");
         updateBattleView();
         refreshContent();
     }
@@ -726,8 +828,8 @@ public class TerminalWindow extends JFrame implements Appendable {
         title.setForeground(DOOM_ACCENT);
         setScalableFont(title, Font.BOLD, 30);
 
-        JLabel subtitle = new JLabel(myHero.getName() + " vs. "
-                + myBattle.getMonster().getName());
+        JLabel subtitle = new JLabel(hero().getName() + " vs. "
+                + battle().getMonster().getName());
         subtitle.setHorizontalAlignment(SwingConstants.CENTER);
         subtitle.setForeground(FOREGROUND);
         setScalableFont(subtitle, Font.PLAIN, 15);
@@ -785,7 +887,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private JPanel buildBattleActionsPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 5, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 6, 10, 0));
         panel.setBackground(BACKGROUND);
 
         myBattleAttackButton = buildButton("Attack");
@@ -793,22 +895,25 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleHealButton = buildButton("Healing Potion");
         myBattleVisionButton = buildButton("Vision Potion");
         myBattleRunButton = buildButton("Run");
+        myBattleNewGameButton = buildButton("New Game");
 
         myBattleAttackButton.addActionListener(
-                event -> handleBattleResult(myBattle.attack()));
+                event -> handleBattleResult(mySession.attack()));
         myBattleSpecialButton.addActionListener(
-                event -> handleBattleResult(myBattle.specialSkill()));
+                event -> handleBattleResult(mySession.specialSkill()));
         myBattleHealButton.addActionListener(
-                event -> handleBattleResult(myBattle.useHealingPotion()));
+                event -> handleBattleResult(mySession.useHealingPotion()));
         myBattleVisionButton.addActionListener(
-                event -> handleBattleResult(myBattle.useVisionPotion()));
+                event -> handleBattleResult(mySession.useVisionPotion()));
         myBattleRunButton.addActionListener(event -> leaveBattleScreen());
+        myBattleNewGameButton.addActionListener(event -> showCharacterCreation());
 
         panel.add(myBattleAttackButton);
         panel.add(myBattleSpecialButton);
         panel.add(myBattleHealButton);
         panel.add(myBattleVisionButton);
         panel.add(myBattleRunButton);
+        panel.add(myBattleNewGameButton);
         return panel;
     }
 
@@ -839,21 +944,23 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
         appendBattleMessages(theResult);
-        if (theResult.isMonsterDefeated()
-                && myDungeon.getCurrentRoom().getMonster() == myBattle.getMonster()) {
-            myDungeon.getCurrentRoom().removeMonster();
-        }
         updateBattleView();
     }
 
     private void leaveBattleScreen() {
         String message = "Returned to the dungeon.";
-        if (myBattle != null && myBattle.isActive()) {
-            Battle.BattleResult result = myBattle.run();
+        if (mySession != null && mySession.isBattleActive()) {
+            Battle.BattleResult result = mySession.runFromBattle();
             appendBattleMessages(result);
             message = lastBattleMessage(result, message);
+        } else if (mySession != null && mySession.isInBattle()) {
+            if (hero().isFainted()) {
+                mySession.leaveFinishedBattle();
+                showTerminal();
+                return;
+            }
+            mySession.leaveFinishedBattle();
         }
-        myBattle = null;
         showDungeonView();
         setStatus(message);
     }
@@ -862,21 +969,34 @@ public class TerminalWindow extends JFrame implements Appendable {
         if (myBattleHeroDisplay != null) {
             myBattleHeroDisplay.setText(buildBattleHeroText());
         }
-        if (myBattleMonsterDisplay != null && myBattle != null) {
+        if (myBattleMonsterDisplay != null && battle() != null) {
             myBattleMonsterDisplay.setText(buildBattleMonsterText());
         }
 
-        boolean active = myBattle != null && myBattle.isActive();
+        boolean active = mySession != null && mySession.isBattleActive();
         setBattleButtonEnabled(myBattleAttackButton, active);
         setBattleButtonEnabled(myBattleSpecialButton, active);
         setBattleButtonEnabled(myBattleHealButton,
-                active && myBattle.canUseHealingPotion());
+                active && battle().canUseHealingPotion());
         setBattleButtonEnabled(myBattleVisionButton,
-                active && myBattle.canUseVisionPotion());
+                active && battle().canUseVisionPotion());
         if (myBattleRunButton != null) {
-            myBattleRunButton.setText(active ? "Run" : "Return");
-            myBattleRunButton.setEnabled(myBattle != null);
+            myBattleRunButton.setText(battleReturnText(active));
+            myBattleRunButton.setEnabled(mySession != null && mySession.isInBattle());
         }
+        if (myBattleNewGameButton != null) {
+            myBattleNewGameButton.setEnabled(!active);
+        }
+    }
+
+    private String battleReturnText(final boolean theBattleActive) {
+        if (theBattleActive) {
+            return "Run";
+        }
+        if (hero().isFainted()) {
+            return "Main Menu";
+        }
+        return "Return";
     }
 
     private void setBattleButtonEnabled(final JButton theButton,
@@ -887,22 +1007,22 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildBattleHeroText() {
-        return "Class: " + myHero.getClass().getSimpleName()
-                + System.lineSeparator() + "Name: " + myHero.getName()
-                + System.lineSeparator() + "HP: " + myHero.getHitPoints()
-                + "/" + myHero.getMaxHitPoints()
-                + System.lineSeparator() + "Damage: " + myHero.getMinDamage()
-                + "-" + myHero.getMaxDamage()
-                + System.lineSeparator() + "Speed: " + myHero.getAttackSpeed()
-                + System.lineSeparator() + "Hit Chance: " + percent(myHero.getHitChance())
-                + System.lineSeparator() + "Block Chance: " + percent(myHero.getChanceToBlock())
-                + System.lineSeparator() + "Healing Potions: " + myHero.getHealingPotions()
-                + System.lineSeparator() + "Vision Potions: " + myHero.getVisionPotions()
-                + System.lineSeparator() + "Pillars: " + myHero.getPillars();
+        return "Class: " + hero().getClass().getSimpleName()
+                + System.lineSeparator() + "Name: " + hero().getName()
+                + System.lineSeparator() + "HP: " + hero().getHitPoints()
+                + "/" + hero().getMaxHitPoints()
+                + System.lineSeparator() + "Damage: " + hero().getMinDamage()
+                + "-" + hero().getMaxDamage()
+                + System.lineSeparator() + "Speed: " + hero().getAttackSpeed()
+                + System.lineSeparator() + "Hit Chance: " + percent(hero().getHitChance())
+                + System.lineSeparator() + "Block Chance: " + percent(hero().getChanceToBlock())
+                + System.lineSeparator() + "Healing Potions: " + hero().getHealingPotions()
+                + System.lineSeparator() + "Vision Potions: " + hero().getVisionPotions()
+                + System.lineSeparator() + "Pillars: " + hero().getPillars();
     }
 
     private String buildBattleMonsterText() {
-        Monster monster = myBattle.getMonster();
+        Monster monster = battle().getMonster();
         return "Type: " + monster.getClass().getSimpleName()
                 + System.lineSeparator() + "Name: " + monster.getName()
                 + System.lineSeparator() + "HP: " + monster.getHitPoints()
@@ -939,56 +1059,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         }
     }
 
-    private void resolveCurrentRoom(final String theBaseMessage) {
-        Room room = myDungeon.getCurrentRoom();
-        String message = theBaseMessage;
-
-        if (room.hasHealingPotion()) {
-            myHero.addHealingPotion();
-            room.removePotion(new HealingPotion());
-            message += " Picked up a healing potion.";
-        }
-        if (room.hasVisionPotion()) {
-            myHero.addVisionPotion();
-            room.removePotion(new VisionPotion());
-            message += " Picked up a vision potion.";
-        }
-        Pillar pillar = room.removePillar();
-        if (pillar != null) {
-            myHero.addPillar(pillar);
-            message += " Found " + formatPillar(pillar) + ".";
-        }
-        int pitDamage = room.fallInPit();
-        if (pitDamage > 0) {
-            myHero.takeDamage(pitDamage);
-            message += " Stepped in lava for " + pitDamage + " damage.";
-        }
-        if (room.isExit()) {
-            if (myHero.hasAllPillars()) {
-                message += " You escaped with all four pillars.";
-            } else {
-                message += " The exit is here, but you still need every pillar.";
-            }
-        }
-        if (myHero.isFainted()) {
-            message += " You have fallen.";
-        }
-
-        setStatus(message);
-    }
-
     private void updateGameView() {
-        Room room = myDungeon.getCurrentRoom();
+        Room room = mySession.getCurrentRoom();
         myMapDisplay.setText(buildMapText());
         myRoomDisplay.setText(centerRoomText(room.toString()));
         myHeroDisplay.setText(buildHeroStatsText());
 
-        boolean gameOver = myHero.isFainted()
-                || (room.isExit() && myHero.hasAllPillars());
+        boolean gameOver = mySession.isGameOver();
         myNorthButton.setEnabled(!gameOver && room.workingDoor(Direction.NORTH));
         myEastButton.setEnabled(!gameOver && room.workingDoor(Direction.EAST));
         mySouthButton.setEnabled(!gameOver && room.workingDoor(Direction.SOUTH));
         myWestButton.setEnabled(!gameOver && room.workingDoor(Direction.WEST));
+        if (mySaveButton != null) {
+            mySaveButton.setEnabled(!hero().isFainted());
+        }
     }
 
     private void setStatus(final String theMessage) {
@@ -998,8 +1082,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildHeroStatsText() {
-        return "Class: " + myHero.getClass().getSimpleName()
-                + System.lineSeparator() + myHero.toString();
+        return "Class: " + hero().getClass().getSimpleName()
+                + System.lineSeparator() + hero().toString();
     }
 
     private String centerRoomText(final String theRoomText) {
@@ -1020,12 +1104,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildMapText() {
-        return myMapRenderer.render(myDungeon);
-    }
-
-    private String formatPillar(final Pillar thePillar) {
-        String name = thePillar.name().toLowerCase().replace('_', ' ');
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        return myMapRenderer.render(dungeon());
     }
 
     private static String percent(final double theChance) {

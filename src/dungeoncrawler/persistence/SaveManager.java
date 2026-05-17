@@ -186,6 +186,7 @@ public class SaveManager extends DatabaseManager {
             else if (rs.getInt("is_exit") == 1)     room.setExit();
 
             // Restore contents after entrance/exit flags
+            room.removePit();
             if (rs.getInt("has_pit") == 1)          room.setPit();
             String pillarName = rs.getString("pillar");
             if (pillarName != null)                  room.setPillar(Pillar.valueOf(pillarName));
@@ -223,11 +224,8 @@ public class SaveManager extends DatabaseManager {
         Hero hero = createHero(rs.getString("hero_class"), rs.getString("player_name"));
         hero.setMyHitPoints(rs.getInt("hero_hp"));
 
-        // NEED TO MAKE INVENTORY VALUE
-        //hero.setHealingPotions(rs.getInt("healing_potions"));
-        //hero.setVisionPotions(rs.getInt("vision_potions"));
-        int throwaway = rs.getInt("healing_potions");
-        int throwaway2 = rs.getInt("vision_potions");
+        hero.setHealingPotions(rs.getInt("healing_potions"));
+        hero.setVisionPotions(rs.getInt("vision_potions"));
 
         if (rs.getInt("abstraction")   == 1) hero.addPillar(Pillar.ABSTRACTION);
         if (rs.getInt("encapsulation") == 1) hero.addPillar(Pillar.ENCAPSULATION);

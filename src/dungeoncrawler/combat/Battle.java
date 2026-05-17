@@ -4,6 +4,9 @@ import dungeoncrawler.model.HealingPotion;
 import dungeoncrawler.model.characters.DungeonCharacter;
 import dungeoncrawler.model.characters.Hero;
 import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.model.characters.Priestess;
+import dungeoncrawler.model.characters.Thief;
+import dungeoncrawler.model.characters.Warrior;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,6 +22,13 @@ import java.util.Random;
  */
 public class Battle {
     private static final Random RANDOM = new Random();
+    private static final double CRUSHING_BLOW_CHANCE = 0.4;
+    private static final int MIN_CRUSHING_BLOW_DMG = 75;
+    private static final int MAX_CRUSHING_BLOW_DMG = 175;
+    private static final int MIN_PRIESTESS_HEAL = 25;
+    private static final int MAX_PRIESTESS_HEAL = 45;
+    private static final double SURPRISE_SUCCESS_CHANCE = 0.4;
+    private static final double SURPRISE_CAUGHT_CHANCE = 0.2;
 
     private final Hero myHero;
     private final Monster myMonster;
@@ -72,12 +82,16 @@ public class Battle {
         }
 
         int attacks = myHero.attacksPerRoundAgainst(myMonster);
+        if (attacks > 1) {
+            result.add(myHero.getName() + "'s speed grants "
+                    + attacks + " attacks this turn.");
+        }
         for (int i = 0; i < attacks && isActive(); i++) {
             performAttack(myHero, myMonster, result);
         }
 
         if (isActive()) {
-            performMonsterResponse(result);
+            performMonsterTurn(result);
         }
         return finish(result);
     }
@@ -88,19 +102,10 @@ public class Battle {
             return result;
         }
 
-        int heroBefore = myHero.getHitPoints();
-        int monsterBefore = myMonster.getHitPoints();
-        result.add(myHero.getName() + " uses a special skill.");
-        myHero.useSpecialSkill(myMonster);
-        describeHitPointChange(myHero, heroBefore, result);
-        describeHitPointChange(myMonster, monsterBefore, result);
-        if (myHero.getHitPoints() == heroBefore
-                && myMonster.getHitPoints() == monsterBefore) {
-            result.add("The special skill has no visible effect.");
-        }
+        performSpecialSkill(result);
 
         if (isActive()) {
-            performMonsterResponse(result);
+            performMonsterTurn(result);
         }
         return finish(result);
     }
@@ -127,7 +132,7 @@ public class Battle {
         }
 
         if (isActive()) {
-            performMonsterResponse(result);
+            performMonsterTurn(result);
         }
         return finish(result);
     }
@@ -160,9 +165,88 @@ public class Battle {
         return finish(result);
     }
 
-    private void performMonsterResponse(final BattleResult theResult) {
-        if (isActive()) {
+    private void performMonsterTurn(final BattleResult theResult) {
+        int attacks = myMonster.attacksPerRoundAgainst(myHero);
+        if (attacks > 1) {
+            theResult.add(myMonster.getName() + "'s speed grants "
+                    + attacks + " attacks this turn.");
+        }
+        for (int i = 0; i < attacks && isActive(); i++) {
             performAttack(myMonster, myHero, theResult);
+        }
+    }
+
+    private void performSpecialSkill(final BattleResult theResult) {
+        if (myHero instanceof Warrior) {
+            performCrushingBlow(theResult);
+        } else if (myHero instanceof Priestess) {
+            performPriestessHeal(theResult);
+        } else if (myHero instanceof Thief) {
+            performSurpriseAttack(theResult);
+        } else {
+            int heroBefore = myHero.getHitPoints();
+            int monsterBefore = myMonster.getHitPoints();
+            theResult.add(myHero.getName() + " uses a special skill.");
+            myHero.useSpecialSkill(myMonster);
+            describeHitPointChange(myHero, heroBefore, theResult);
+            describeHitPointChange(myMonster, monsterBefore, theResult);
+            if (myHero.getHitPoints() == heroBefore
+                    && myMonster.getHitPoints() == monsterBefore) {
+                theResult.add("The special skill has no visible effect.");
+            }
+        }
+    }
+
+    private void performCrushingBlow(final BattleResult theResult) {
+        theResult.add(myHero.getName() + " attempts Crushing Blow.");
+        if (RANDOM.nextDouble() > CRUSHING_BLOW_CHANCE) {
+            theResult.add("Crushing Blow misses.");
+            return;
+        }
+
+        int before = myMonster.getHitPoints();
+        int damage = randomInRange(MIN_CRUSHING_BLOW_DMG, MAX_CRUSHING_BLOW_DMG);
+        int damageTaken = myMonster.takeDamage(damage);
+        if (damageTaken > 0) {
+            theResult.add(myMonster.getName() + " takes "
+                    + damageTaken + " damage from Crushing Blow.");
+            describeMonsterHealing(myMonster, before, damageTaken, theResult);
+        } else {
+            theResult.add("Crushing Blow has no effect.");
+        }
+    }
+
+    private void performPriestessHeal(final BattleResult theResult) {
+        int before = myHero.getHitPoints();
+        int healed = myHero.heal(randomInRange(MIN_PRIESTESS_HEAL, MAX_PRIESTESS_HEAL));
+        if (healed > 0) {
+            theResult.add(myHero.getName() + " prays and recovers "
+                    + healed + " HP.");
+        } else if (before == myHero.getMaxHitPoints()) {
+            theResult.add(myHero.getName()
+                    + " prays, but is already at full health.");
+        } else {
+            theResult.add(myHero.getName() + "'s prayer has no effect.");
+        }
+    }
+
+    private void performSurpriseAttack(final BattleResult theResult) {
+        double roll = RANDOM.nextDouble();
+        if (roll < SURPRISE_SUCCESS_CHANCE) {
+            theResult.add(myHero.getName()
+                    + " catches the monster off guard with Surprise Attack.");
+            performAttack(myHero, myMonster, theResult);
+            if (isActive()) {
+                theResult.add(myHero.getName() + " follows up with a second strike.");
+                performAttack(myHero, myMonster, theResult);
+            }
+        } else if (roll < SURPRISE_SUCCESS_CHANCE + SURPRISE_CAUGHT_CHANCE) {
+            theResult.add(myHero.getName()
+                    + " is caught setting up Surprise Attack and loses the action.");
+        } else {
+            theResult.add(myHero.getName()
+                    + "'s Surprise Attack becomes a normal attack.");
+            performAttack(myHero, myMonster, theResult);
         }
     }
 
@@ -235,11 +319,13 @@ public class Battle {
             myOver = true;
             theResult.setHeroDefeated(true);
             theResult.add(myHero.getName() + " has fallen.");
+            theResult.add("Game over. Return to the main menu or start a new game.");
         }
         if (myMonster.isFainted()) {
             myOver = true;
             theResult.setMonsterDefeated(true);
             theResult.add(myMonster.getName() + " is defeated.");
+            theResult.add("Victory. Return to the dungeon when ready.");
         }
         if (myEscaped) {
             myOver = true;

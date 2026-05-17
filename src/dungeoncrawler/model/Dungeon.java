@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
+import java.io.Serializable;
 
-public class Dungeon {
+public class Dungeon implements Serializable {
+    private static final long serialVersionUID = 1L;
     private static final Random RANDOM = new Random();
 
     private Room[][] maze;

@@ -77,8 +77,16 @@ public abstract class Hero extends DungeonCharacter {
         return myHealingPotions;
     }
 
+    public void setHealingPotions(final int theHealingPotions) {
+        myHealingPotions = Math.max(0, theHealingPotions);
+    }
+
     public int getVisionPotions() {
         return myVisionPotions;
+    }
+
+    public void setVisionPotions(final int theVisionPotions) {
+        myVisionPotions = Math.max(0, theVisionPotions);
     }
 
     public double getChanceToBlock() {

@@ -5,6 +5,7 @@ import dungeoncrawler.model.characters.Monster;
 import dungeoncrawler.model.characters.Ogre;
 import dungeoncrawler.model.characters.Skeleton;
 
+import java.io.Serializable;
 import java.util.Random;
 
 /**
@@ -14,7 +15,8 @@ import java.util.Random;
  * to adjacent rooms. Entrance and exit rooms are exclusive special rooms and
  * therefore contain no other room features.</p>
  */
-public class Room {
+public class Room implements Serializable {
+    private static final long serialVersionUID = 1L;
     private static final Random RANDOM = new Random();
     private static final int FEATURE_CHANCE = 10;
     private static final int PIT_DAMAGE = 20;

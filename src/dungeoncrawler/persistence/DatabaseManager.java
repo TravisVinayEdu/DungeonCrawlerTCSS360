@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public abstract class DatabaseManager {
+public abstract class DatabaseManager implements AutoCloseable {
     private static final String DB_URL = "jdbc:sqlite:dungeon.db";
     protected Connection conn;
 
@@ -16,6 +16,7 @@ public abstract class DatabaseManager {
 
     protected abstract void initSchema() throws SQLException;
 
+    @Override
     public void close() throws SQLException {
         if (conn != null && !conn.isClosed()) {
             conn.close();
