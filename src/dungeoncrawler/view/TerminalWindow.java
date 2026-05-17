@@ -16,14 +16,14 @@ import dungeoncrawler.model.characters.Warrior;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;
@@ -55,13 +55,11 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color INVALID_MOVE_BORDER = new Color(255, 85, 85);
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
-    private static final Dimension STARTING_SIZE = new Dimension(900, 650);
-    private static final String BASE_FONT_SIZE = "baseFontSize";
-    private static final String FONT_STYLE = "fontStyle";
-    private static final double MIN_FONT_SCALE = 0.75;
-    private static final double MAX_FONT_SCALE = 1.6;
 
     private final DungeonCrawler myGame;
+    private final WindowScaler myWindowScaler;
+    private final ScalableFontManager myFontManager;
+    private final DungeonMapRenderer myMapRenderer;
     private final JTextArea myOutput;
     private final JTextField myInput;
     private Hero myHero;
@@ -87,21 +85,25 @@ public class TerminalWindow extends JFrame implements Appendable {
     public TerminalWindow(final DungeonCrawler theGame) {
         super("Dungeon Crawler Terminal");
         myGame = theGame;
+        myWindowScaler = new WindowScaler();
+        myFontManager = new ScalableFontManager(this, myWindowScaler);
+        myMapRenderer = new DungeonMapRenderer();
         myOutput = buildOutputArea();
         myInput = buildInputField();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(720, 460));
+        setMinimumSize(myWindowScaler.scaledMinimumSize());
         setLocationByPlatform(true);
         setContentPane(buildContentPane());
         bindInput();
         bindFontScaling();
+        bindWindowZoom();
         printIntro();
     }
 
     public void open() {
         pack();
-        setSize(STARTING_SIZE);
+        setSize(myWindowScaler.scaledStartingSize());
         setLocationRelativeTo(null);
         updateScaledFonts();
         setVisible(true);
@@ -197,6 +199,57 @@ public class TerminalWindow extends JFrame implements Appendable {
         });
     }
 
+    private void bindWindowZoom() {
+        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getRootPane().getActionMap();
+
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_EQUALS,
+                "zoomInEquals", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_PLUS,
+                "zoomInPlus", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_ADD,
+                "zoomInNumpad", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_MINUS,
+                "zoomOutMinus", () -> {
+                    myWindowScaler.decreaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_SUBTRACT,
+                "zoomOutNumpad", () -> {
+                    myWindowScaler.decreaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_0,
+                "zoomReset", () -> {
+                    myWindowScaler.resetUserScale();
+                    refreshContent();
+                });
+    }
+
+    private void bindZoomKey(final InputMap theInputMap,
+                             final ActionMap theActionMap,
+                             final int theKeyCode,
+                             final String theActionName,
+                             final Runnable theAction) {
+        theInputMap.put(KeyStroke.getKeyStroke(theKeyCode,
+                InputEvent.CTRL_DOWN_MASK), theActionName);
+        theActionMap.put(theActionName, new AbstractAction() {
+            @Override
+            public void actionPerformed(final ActionEvent theEvent) {
+                theAction.run();
+            }
+        });
+    }
+
     private void handleCommand(final ActionEvent theEvent) {
         String command = myInput.getText().trim();
         myInput.setText("");
@@ -253,34 +306,8 @@ public class TerminalWindow extends JFrame implements Appendable {
         println("4. clear - Clear the terminal");
         println("5. exit  - Close the game");
         println("");
-        String[] mapPreview = {
-                "+---+---+---+---+---+---+---+",
-                "| S     | H     |       | M |",
-                "+   +---+   +   +---+   +   +",
-                "|   | A     |       | P     |",
-                "+   +   +---+---+   +---+   +",
-                "|       | @     | V     |   |",
-                "+---+   +   +---+---+   +   +",
-                "| I     |       | O     | X |",
-                "+---+---+---+---+---+---+---+"
-        };
-        String[] symbolTable = {
-                "+--------+---------------+",
-                "| Symbol | Meaning       |",
-                "+--------+---------------+",
-                "| S      | Start         |",
-                "| X      | Exit          |",
-                "| @      | Hero          |",
-                "| H      | Healing       |",
-                "| V      | Vision        |",
-                "| P      | Pit           |",
-                "| M      | Monster       |",
-                "| A/E/I/O| Pillars       |",
-                "+--------+---------------+"
-        };
-        for (int i = 0; i < symbolTable.length; i++) {
-            String mapLine = i < mapPreview.length ? mapPreview[i] : " ".repeat(29);
-            printCentered(mapLine + "    " + symbolTable[i]);
+        for (String line : StartupPreview.lines()) {
+            printCentered(line);
         }
         println("");
     }
@@ -391,7 +418,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildStatsText(final String theClassName, final Hero thePreview) {
-        return "<html><body style='width: 150px'>"
+        return "<html><body style='width: " + myWindowScaler.scaledLength(150) + "px'>"
                 + "<b>" + theClassName + "</b><br><br>"
                 + "HP: " + thePreview.getMaxHitPoints() + "<br>"
                 + "Damage: " + thePreview.getMinDamage() + "-"
@@ -496,8 +523,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JPanel buildSidePanel() {
         JPanel panel = new JPanel(new GridLayout(2, 1, 0, 14));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(260, 420));
-        panel.setMinimumSize(new Dimension(210, 260));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(260, 420));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(210, 260));
 
         panel.add(buildHeroPanel());
         panel.add(buildRoomPanel());
@@ -713,8 +740,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JPanel buildBattleHeroPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 360));
-        panel.setMinimumSize(new Dimension(200, 240));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(250, 360));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(200, 240));
 
         JLabel label = buildCharacterLabel("Hero Status");
         myBattleHeroDisplay = buildOutputArea();
@@ -729,8 +756,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JPanel buildBattleMonsterPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 360));
-        panel.setMinimumSize(new Dimension(200, 240));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(250, 360));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(200, 240));
 
         JLabel label = buildCharacterLabel("Monster Status");
         myBattleMonsterDisplay = buildOutputArea();
@@ -803,47 +830,11 @@ public class TerminalWindow extends JFrame implements Appendable {
     private void setScalableFont(final JComponent theComponent,
                                  final int theStyle,
                                  final int theBaseSize) {
-        theComponent.putClientProperty(BASE_FONT_SIZE, theBaseSize);
-        theComponent.putClientProperty(FONT_STYLE, theStyle);
-        theComponent.setFont(buildScaledFont(theStyle, theBaseSize));
+        myFontManager.setScalableFont(theComponent, theStyle, theBaseSize);
     }
 
     private void updateScaledFonts() {
-        updateScaledFonts(getContentPane());
-    }
-
-    private void updateScaledFonts(final Component theComponent) {
-        Object baseSize = null;
-        Object style = null;
-        if (theComponent instanceof JComponent) {
-            JComponent component = (JComponent) theComponent;
-            baseSize = component.getClientProperty(BASE_FONT_SIZE);
-            style = component.getClientProperty(FONT_STYLE);
-        }
-
-        if (baseSize instanceof Integer && style instanceof Integer) {
-            theComponent.setFont(buildScaledFont((Integer) style, (Integer) baseSize));
-        }
-
-        if (theComponent instanceof Container) {
-            for (Component child : ((Container) theComponent).getComponents()) {
-                updateScaledFonts(child);
-            }
-        }
-    }
-
-    private Font buildScaledFont(final int theStyle, final int theBaseSize) {
-        int scaledSize = Math.max(1, (int) Math.round(theBaseSize * currentFontScale()));
-        return new Font(Font.MONOSPACED, theStyle, scaledSize);
-    }
-
-    private double currentFontScale() {
-        int width = Math.max(1, getWidth());
-        int height = Math.max(1, getHeight());
-        double currentArea = (double) width * height;
-        double startingArea = (double) STARTING_SIZE.width * STARTING_SIZE.height;
-        double scale = Math.sqrt(currentArea / startingArea);
-        return Math.max(MIN_FONT_SCALE, Math.min(MAX_FONT_SCALE, scale));
+        myFontManager.updateScaledFonts(getContentPane());
     }
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
@@ -970,7 +961,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         int pitDamage = room.fallInPit();
         if (pitDamage > 0) {
             myHero.takeDamage(pitDamage);
-            message += " Fell in a pit for " + pitDamage + " damage.";
+            message += " Stepped in lava for " + pitDamage + " damage.";
         }
         if (room.isExit()) {
             if (myHero.hasAllPillars()) {
@@ -1029,120 +1020,12 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildMapText() {
-        String text = "";
-        for (int row = 0; row < myDungeon.getHeight(); row++) {
-            for (int col = 0; col < myDungeon.getWidth(); col++) {
-                if (myDungeon.isDiscovered(row, col)) {
-                    text += "+";
-                    text += topMapWall(row, col);
-                } else {
-                    text += "    ";
-                }
-            }
-            text += trailingMapCorner(row) + System.lineSeparator();
-
-            for (int col = 0; col < myDungeon.getWidth(); col++) {
-                Room room = myDungeon.getRoom(row, col);
-                if (myDungeon.isDiscovered(row, col)) {
-                    text += leftMapWall(room, row, col);
-                    text += roomMapSymbol(room, row, col);
-                } else {
-                    text += "    ";
-                }
-            }
-            text += trailingMapWall(row) + System.lineSeparator();
-        }
-        for (int col = 0; col < myDungeon.getWidth(); col++) {
-            if (myDungeon.isDiscovered(myDungeon.getHeight() - 1, col)) {
-                text += "+---";
-            } else {
-                text += "    ";
-            }
-        }
-        return text + trailingBottomCorner();
-    }
-
-    private String trailingMapCorner(final int theRow) {
-        if (myDungeon.isDiscovered(theRow, myDungeon.getWidth() - 1)) {
-            return "+";
-        }
-        return "";
-    }
-
-    private String trailingMapWall(final int theRow) {
-        if (myDungeon.isDiscovered(theRow, myDungeon.getWidth() - 1)) {
-            return "|";
-        }
-        return "";
-    }
-
-    private String trailingBottomCorner() {
-        if (myDungeon.isDiscovered(myDungeon.getHeight() - 1,
-                myDungeon.getWidth() - 1)) {
-            return "+";
-        }
-        return "";
-    }
-
-    private String topMapWall(final int theRow, final int theCol) {
-        return myDungeon.getRoom(theRow, theCol).workingDoor(Direction.NORTH)
-                ? "   " : "---";
-    }
-
-    private String leftMapWall(final Room theRoom,
-                               final int theRow,
-                               final int theCol) {
-        return theRoom.workingDoor(Direction.WEST) ? " " : "|";
-    }
-
-    private String roomMapSymbol(final Room theRoom,
-                                 final int theRow,
-                                 final int theCol) {
-        if (theRow == myDungeon.getHeroRow() && theCol == myDungeon.getHeroCol()) {
-            return " @ ";
-        }
-        if (theRoom.isEntrance()) {
-            return " S ";
-        }
-        if (theRoom.isExit()) {
-            return " X ";
-        }
-        if (theRoom.getPillar() != null) {
-            return " " + pillarLetter(theRoom.getPillar()) + " ";
-        }
-        if (theRoom.hasPit()) {
-            return " P ";
-        }
-        if (theRoom.hasHealingPotion()) {
-            return " H ";
-        }
-        if (theRoom.hasVisionPotion()) {
-            return " V ";
-        }
-        if (theRoom.getMonster() != null) {
-            return " M ";
-        }
-        return "   ";
+        return myMapRenderer.render(myDungeon);
     }
 
     private String formatPillar(final Pillar thePillar) {
         String name = thePillar.name().toLowerCase().replace('_', ' ');
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    private String pillarLetter(final Pillar thePillar) {
-        switch (thePillar) {
-            case ABSTRACTION:
-                return "A";
-            case ENCAPSULATION:
-                return "E";
-            case INHERITANCE:
-                return "I";
-            case POLYMORPHISM:
-                return "O";
-            default:
-                return "?";
-        }
     }
 
     private static String percent(final double theChance) {
