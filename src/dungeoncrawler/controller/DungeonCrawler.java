@@ -7,10 +7,13 @@ import dungeoncrawler.model.characters.Hero;
 import dungeoncrawler.model.characters.Priestess;
 import dungeoncrawler.model.characters.Thief;
 import dungeoncrawler.model.characters.Warrior;
-import dungeoncrawler.model.characters.Monster;
+import dungeoncrawler.persistence.FileSaveManager;
+import dungeoncrawler.persistence.SaveManager;
 import dungeoncrawler.view.TerminalWindow;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 import javax.swing.SwingUtilities;
 
@@ -59,9 +62,39 @@ public class DungeonCrawler {
         return new Dungeon(10, 10);
     }
 
-    public void saveGame(String filename){}
-    public void loadGame(String filename){}
-    private void playTurn(){}
+    public GameSession createSession(final Hero theHero) {
+        return new GameSession(theHero, createDungeon());
+    }
+
+    public long saveGame(final GameSession theSession) throws SQLException, IOException {
+        try (SaveManager saveManager = new SaveManager()) {
+            return saveManager.saveGame(theSession.getHero(), theSession.getDungeon());
+        } catch (SQLException exception) {
+            return new FileSaveManager().saveGame(theSession);
+        }
+    }
+
+    public GameSession loadGame(final long theSaveId) throws SQLException, IOException {
+        if (theSaveId <= Integer.MAX_VALUE) {
+            try (SaveManager saveManager = new SaveManager()) {
+                Hero hero = saveManager.loadHero((int) theSaveId);
+                Dungeon dungeon = saveManager.loadDungeon((int) theSaveId);
+                return new GameSession(hero, dungeon);
+            } catch (SQLException exception) {
+                return new FileSaveManager().loadGame(theSaveId);
+            }
+        }
+        return new FileSaveManager().loadGame(theSaveId);
+    }
+
+    public List<String> listSaves() throws SQLException, IOException {
+        try (SaveManager saveManager = new SaveManager()) {
+            return saveManager.listSaves();
+        } catch (SQLException exception) {
+            return new FileSaveManager().listSaves();
+        }
+    }
+
     private void handleRoom(Appendable terminal, Room r) {
         writeLine(terminal, "Current Room:");
         writeLine(terminal, r.toString());
@@ -69,8 +102,6 @@ public class DungeonCrawler {
         writeLine(terminal, "Available exits:");
         writeLine(terminal, exitsFor(r));
     }
-    private void battle(Hero h, Monster m){}
-
     private static void writeLine(Appendable terminal, String text) {
         try {
             terminal.append(text).append(System.lineSeparator());
