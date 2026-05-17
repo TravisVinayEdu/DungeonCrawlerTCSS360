@@ -18,9 +18,12 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;
@@ -28,6 +31,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -51,9 +55,11 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color INVALID_MOVE_BORDER = new Color(255, 85, 85);
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
-    private static final Font TERMINAL_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 15);
 
     private final DungeonCrawler myGame;
+    private final WindowScaler myWindowScaler;
+    private final ScalableFontManager myFontManager;
+    private final DungeonMapRenderer myMapRenderer;
     private final JTextArea myOutput;
     private final JTextField myInput;
     private Hero myHero;
@@ -79,19 +85,27 @@ public class TerminalWindow extends JFrame implements Appendable {
     public TerminalWindow(final DungeonCrawler theGame) {
         super("Dungeon Crawler Terminal");
         myGame = theGame;
+        myWindowScaler = new WindowScaler();
+        myFontManager = new ScalableFontManager(this, myWindowScaler);
+        myMapRenderer = new DungeonMapRenderer();
         myOutput = buildOutputArea();
         myInput = buildInputField();
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(720, 460));
+        setMinimumSize(myWindowScaler.scaledMinimumSize());
         setLocationByPlatform(true);
         setContentPane(buildContentPane());
         bindInput();
+        bindFontScaling();
+        bindWindowZoom();
         printIntro();
     }
 
     public void open() {
         pack();
+        setSize(myWindowScaler.scaledStartingSize());
+        setLocationRelativeTo(null);
+        updateScaledFonts();
         setVisible(true);
         myInput.requestFocusInWindow();
     }
@@ -121,12 +135,8 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.setBackground(BACKGROUND);
         panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
 
-        JScrollPane scrollPane = new JScrollPane(myOutput);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
-        scrollPane.getViewport().setBackground(EDITOR_BACKGROUND);
-
         panel.add(buildHeader(), BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myOutput), BorderLayout.CENTER);
         panel.add(myInput, BorderLayout.SOUTH);
         return panel;
     }
@@ -139,12 +149,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Dungeon Crawler");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel authors = new JLabel("Pavlo Puzik    Travis Vinay    Andrew DeFord");
         authors.setHorizontalAlignment(SwingConstants.CENTER);
         authors.setForeground(FOREGROUND);
-        authors.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        setScalableFont(authors, Font.PLAIN, 13);
 
         header.add(title, BorderLayout.NORTH);
         header.add(authors, BorderLayout.SOUTH);
@@ -159,7 +169,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         output.setBackground(EDITOR_BACKGROUND);
         output.setForeground(FOREGROUND);
         output.setCaretColor(CARET);
-        output.setFont(TERMINAL_FONT);
+        setScalableFont(output, Font.PLAIN, 15);
         output.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         return output;
     }
@@ -169,7 +179,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         input.setBackground(INPUT_BACKGROUND);
         input.setForeground(FOREGROUND);
         input.setCaretColor(CARET);
-        input.setFont(TERMINAL_FONT);
+        setScalableFont(input, Font.PLAIN, 15);
         input.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
                 BorderFactory.createEmptyBorder(10, 12, 10, 12)));
@@ -178,6 +188,66 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void bindInput() {
         myInput.addActionListener(this::handleCommand);
+    }
+
+    private void bindFontScaling() {
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(final ComponentEvent theEvent) {
+                updateScaledFonts();
+            }
+        });
+    }
+
+    private void bindWindowZoom() {
+        InputMap inputMap = getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = getRootPane().getActionMap();
+
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_EQUALS,
+                "zoomInEquals", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_PLUS,
+                "zoomInPlus", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_ADD,
+                "zoomInNumpad", () -> {
+                    myWindowScaler.increaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_MINUS,
+                "zoomOutMinus", () -> {
+                    myWindowScaler.decreaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_SUBTRACT,
+                "zoomOutNumpad", () -> {
+                    myWindowScaler.decreaseUserScale();
+                    refreshContent();
+                });
+        bindZoomKey(inputMap, actionMap, KeyEvent.VK_0,
+                "zoomReset", () -> {
+                    myWindowScaler.resetUserScale();
+                    refreshContent();
+                });
+    }
+
+    private void bindZoomKey(final InputMap theInputMap,
+                             final ActionMap theActionMap,
+                             final int theKeyCode,
+                             final String theActionName,
+                             final Runnable theAction) {
+        theInputMap.put(KeyStroke.getKeyStroke(theKeyCode,
+                InputEvent.CTRL_DOWN_MASK), theActionName);
+        theActionMap.put(theActionName, new AbstractAction() {
+            @Override
+            public void actionPerformed(final ActionEvent theEvent) {
+                theAction.run();
+            }
+        });
     }
 
     private void handleCommand(final ActionEvent theEvent) {
@@ -236,16 +306,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         println("4. clear - Clear the terminal");
         println("5. exit  - Close the game");
         println("");
-        printCentered("#########################");
-        printCentered("# S #     #       #     #");
-        printCentered("# ### ### # ##### # ### #");
-        printCentered("#   # #   #     #   #   #");
-        printCentered("### # # ##### # ##### ###");
-        printCentered("#   # #     # #     #   #");
-        printCentered("# ### ##### # ##### ### #");
-        printCentered("#     #     #     #   E #");
-        printCentered("#########################");
-        printCentered("S = Start      E = Exit");
+        for (String line : StartupPreview.lines()) {
+            printCentered(line);
+        }
         println("");
     }
 
@@ -257,7 +320,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JTextField nameField = buildInputField();
         JLabel errorLabel = new JLabel(" ");
         errorLabel.setForeground(new Color(255, 121, 198));
-        errorLabel.setFont(TERMINAL_FONT);
+        setScalableFont(errorLabel, Font.PLAIN, 15);
 
         JPanel namePanel = new JPanel(new BorderLayout(0, 6));
         namePanel.setBackground(BACKGROUND);
@@ -316,9 +379,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.add(bottomPanel, BorderLayout.SOUTH);
 
         setContentPane(panel);
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
         nameField.requestFocusInWindow();
     }
 
@@ -326,7 +387,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Hero Creation");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
         return title;
     }
 
@@ -335,7 +396,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         button.setActionCommand(theClassName);
         button.setBackground(EDITOR_BACKGROUND);
         button.setForeground(FOREGROUND);
-        button.setFont(TERMINAL_FONT);
+        setScalableFont(button, Font.PLAIN, 15);
         button.setVerticalAlignment(SwingConstants.TOP);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -357,7 +418,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildStatsText(final String theClassName, final Hero thePreview) {
-        return "<html><body style='width: 150px'>"
+        return "<html><body style='width: " + myWindowScaler.scaledLength(150) + "px'>"
                 + "<b>" + theClassName + "</b><br><br>"
                 + "HP: " + thePreview.getMaxHitPoints() + "<br>"
                 + "Damage: " + thePreview.getMinDamage() + "-"
@@ -371,7 +432,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JLabel buildCharacterLabel(final String theText) {
         JLabel label = new JLabel(theText);
         label.setForeground(DOOM_ACCENT);
-        label.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        setScalableFont(label, Font.BOLD, 16);
         return label;
     }
 
@@ -379,7 +440,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         JButton button = new JButton(theText);
         button.setBackground(INPUT_BACKGROUND);
         button.setForeground(FOREGROUND);
-        button.setFont(TERMINAL_FONT);
+        setScalableFont(button, Font.PLAIN, 15);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -393,9 +454,7 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void showTerminal() {
         setContentPane(buildContentPane());
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
         myInput.requestFocusInWindow();
     }
 
@@ -421,9 +480,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         setTitle("Dungeon Crawler");
         setContentPane(panel);
         updateGameView();
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
     }
 
     private JPanel buildGameHeader(final Hero theHero) {
@@ -433,13 +490,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Dungeon");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel subtitle = new JLabel(theHero.getName() + " the "
                 + theHero.getClass().getSimpleName());
         subtitle.setHorizontalAlignment(SwingConstants.CENTER);
         subtitle.setForeground(FOREGROUND);
-        subtitle.setFont(TERMINAL_FONT);
+        setScalableFont(subtitle, Font.PLAIN, 15);
 
         header.add(title, BorderLayout.NORTH);
         header.add(subtitle, BorderLayout.SOUTH);
@@ -454,19 +511,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         label.setHorizontalAlignment(SwingConstants.CENTER);
         myMapDisplay = buildOutputArea();
         myMapDisplay.setRows(22);
-        myMapDisplay.setColumns(54);
+        myMapDisplay.setColumns(44);
         myMapDisplay.setLineWrap(false);
         myMapDisplay.setWrapStyleWord(false);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myMapDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myMapDisplay), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel buildSidePanel() {
         JPanel panel = new JPanel(new GridLayout(2, 1, 0, 14));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 420));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(260, 420));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(210, 260));
 
         panel.add(buildHeroPanel());
         panel.add(buildRoomPanel());
@@ -483,7 +541,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myHeroDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myHeroDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myHeroDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -500,7 +558,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myRoomDisplay.setWrapStyleWord(false);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myRoomDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myRoomDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -511,9 +569,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         myStatusLabel = new JLabel(" ");
         myStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         myStatusLabel.setForeground(FOREGROUND);
-        myStatusLabel.setFont(TERMINAL_FONT);
+        setScalableFont(myStatusLabel, Font.PLAIN, 15);
 
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel controls = new JPanel(new GridLayout(1, 4, 10, 0));
         controls.setBackground(BACKGROUND);
         myNorthButton = buildMoveButton("[W] North", Direction.NORTH);
         myEastButton = buildMoveButton("[D] East", Direction.EAST);
@@ -656,9 +714,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         setContentPane(panel);
         appendBattleLog("A " + myBattle.getMonster().getName() + " blocks your path.");
         updateBattleView();
-        revalidate();
-        repaint();
-        pack();
+        refreshContent();
     }
 
     private JPanel buildBattleHeader() {
@@ -668,13 +724,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         JLabel title = new JLabel("Battle");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
-        title.setFont(new Font(Font.MONOSPACED, Font.BOLD, 30));
+        setScalableFont(title, Font.BOLD, 30);
 
         JLabel subtitle = new JLabel(myHero.getName() + " vs. "
                 + myBattle.getMonster().getName());
         subtitle.setHorizontalAlignment(SwingConstants.CENTER);
         subtitle.setForeground(FOREGROUND);
-        subtitle.setFont(TERMINAL_FONT);
+        setScalableFont(subtitle, Font.PLAIN, 15);
 
         header.add(title, BorderLayout.NORTH);
         header.add(subtitle, BorderLayout.SOUTH);
@@ -684,7 +740,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JPanel buildBattleHeroPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 360));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(250, 360));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(200, 240));
 
         JLabel label = buildCharacterLabel("Hero Status");
         myBattleHeroDisplay = buildOutputArea();
@@ -692,14 +749,15 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleHeroDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleHeroDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleHeroDisplay), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel buildBattleMonsterPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
-        panel.setPreferredSize(new Dimension(250, 360));
+        panel.setPreferredSize(myWindowScaler.scaledDimension(250, 360));
+        panel.setMinimumSize(myWindowScaler.scaledDimension(200, 240));
 
         JLabel label = buildCharacterLabel("Monster Status");
         myBattleMonsterDisplay = buildOutputArea();
@@ -707,7 +765,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleMonsterDisplay.setColumns(22);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleMonsterDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleMonsterDisplay), BorderLayout.CENTER);
         return panel;
     }
 
@@ -722,12 +780,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleLogDisplay.setColumns(44);
 
         panel.add(label, BorderLayout.NORTH);
-        panel.add(myBattleLogDisplay, BorderLayout.CENTER);
+        panel.add(wrapTextArea(myBattleLogDisplay), BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel buildBattleActionsPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 5, 10, 0));
         panel.setBackground(BACKGROUND);
 
         myBattleAttackButton = buildButton("Attack");
@@ -752,6 +810,31 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.add(myBattleVisionButton);
         panel.add(myBattleRunButton);
         return panel;
+    }
+
+    private JScrollPane wrapTextArea(final JTextArea theTextArea) {
+        JScrollPane scrollPane = new JScrollPane(theTextArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER));
+        scrollPane.getViewport().setBackground(EDITOR_BACKGROUND);
+        scrollPane.setMinimumSize(new Dimension(0, 0));
+        theTextArea.setMinimumSize(new Dimension(0, 0));
+        return scrollPane;
+    }
+
+    private void refreshContent() {
+        updateScaledFonts();
+        revalidate();
+        repaint();
+    }
+
+    private void setScalableFont(final JComponent theComponent,
+                                 final int theStyle,
+                                 final int theBaseSize) {
+        myFontManager.setScalableFont(theComponent, theStyle, theBaseSize);
+    }
+
+    private void updateScaledFonts() {
+        myFontManager.updateScaledFonts(getContentPane());
     }
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
@@ -878,7 +961,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         int pitDamage = room.fallInPit();
         if (pitDamage > 0) {
             myHero.takeDamage(pitDamage);
-            message += " Fell in a pit for " + pitDamage + " damage.";
+            message += " Stepped in lava for " + pitDamage + " damage.";
         }
         if (room.isExit()) {
             if (myHero.hasAllPillars()) {
@@ -937,120 +1020,12 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private String buildMapText() {
-        String text = "";
-        for (int row = 0; row < myDungeon.getHeight(); row++) {
-            for (int col = 0; col < myDungeon.getWidth(); col++) {
-                if (myDungeon.isDiscovered(row, col)) {
-                    text += "+";
-                    text += topMapWall(row, col);
-                } else {
-                    text += "    ";
-                }
-            }
-            text += trailingMapCorner(row) + System.lineSeparator();
-
-            for (int col = 0; col < myDungeon.getWidth(); col++) {
-                Room room = myDungeon.getRoom(row, col);
-                if (myDungeon.isDiscovered(row, col)) {
-                    text += leftMapWall(room, row, col);
-                    text += roomMapSymbol(room, row, col);
-                } else {
-                    text += "    ";
-                }
-            }
-            text += trailingMapWall(row) + System.lineSeparator();
-        }
-        for (int col = 0; col < myDungeon.getWidth(); col++) {
-            if (myDungeon.isDiscovered(myDungeon.getHeight() - 1, col)) {
-                text += "+---";
-            } else {
-                text += "    ";
-            }
-        }
-        return text + trailingBottomCorner();
-    }
-
-    private String trailingMapCorner(final int theRow) {
-        if (myDungeon.isDiscovered(theRow, myDungeon.getWidth() - 1)) {
-            return "+";
-        }
-        return "";
-    }
-
-    private String trailingMapWall(final int theRow) {
-        if (myDungeon.isDiscovered(theRow, myDungeon.getWidth() - 1)) {
-            return "|";
-        }
-        return "";
-    }
-
-    private String trailingBottomCorner() {
-        if (myDungeon.isDiscovered(myDungeon.getHeight() - 1,
-                myDungeon.getWidth() - 1)) {
-            return "+";
-        }
-        return "";
-    }
-
-    private String topMapWall(final int theRow, final int theCol) {
-        return myDungeon.getRoom(theRow, theCol).workingDoor(Direction.NORTH)
-                ? "   " : "---";
-    }
-
-    private String leftMapWall(final Room theRoom,
-                               final int theRow,
-                               final int theCol) {
-        return theRoom.workingDoor(Direction.WEST) ? " " : "|";
-    }
-
-    private String roomMapSymbol(final Room theRoom,
-                                 final int theRow,
-                                 final int theCol) {
-        if (theRow == myDungeon.getHeroRow() && theCol == myDungeon.getHeroCol()) {
-            return " @ ";
-        }
-        if (theRoom.isEntrance()) {
-            return " S ";
-        }
-        if (theRoom.isExit()) {
-            return " X ";
-        }
-        if (theRoom.getPillar() != null) {
-            return " " + pillarLetter(theRoom.getPillar()) + " ";
-        }
-        if (theRoom.hasPit()) {
-            return " P ";
-        }
-        if (theRoom.hasHealingPotion()) {
-            return " H ";
-        }
-        if (theRoom.hasVisionPotion()) {
-            return " V ";
-        }
-        if (theRoom.getMonster() != null) {
-            return " M ";
-        }
-        return "   ";
+        return myMapRenderer.render(myDungeon);
     }
 
     private String formatPillar(final Pillar thePillar) {
         String name = thePillar.name().toLowerCase().replace('_', ' ');
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    private String pillarLetter(final Pillar thePillar) {
-        switch (thePillar) {
-            case ABSTRACTION:
-                return "A";
-            case ENCAPSULATION:
-                return "E";
-            case INHERITANCE:
-                return "I";
-            case POLYMORPHISM:
-                return "O";
-            default:
-                return "?";
-        }
     }
 
     private static String percent(final double theChance) {

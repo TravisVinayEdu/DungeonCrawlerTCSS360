@@ -237,7 +237,7 @@ public class Room {
             contents += pillarSymbol();
         }
         if (pit) {
-            contents += "P";
+            contents += "L";
         }
         if (healingPotion) {
             contents += "H";
@@ -267,7 +267,7 @@ public class Room {
             case INHERITANCE:
                 return "I";
             case POLYMORPHISM:
-                return "O";
+                return "P";
             default:
                 return "?";
         }
