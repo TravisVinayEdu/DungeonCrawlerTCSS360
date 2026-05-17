@@ -5,17 +5,14 @@ package dungeoncrawler.model.characters;
  */
 public class Ogre extends Monster {
     public static final String OGRE_NAME = "Ogre";
-    public static final int HP = 200;
-    public static final int SPD = 2;
-    public static final double HIT = 0.6;
-    public static final int MIN_DMG = 30;
-    private static final int MAX_DMG = 60;
-    private static final double HEAL_CHANCE = 0.1;
-    private static final int MIN_HEAL = 30;
-    private static final int MAX_HEAL = 60;
 
     public Ogre() {
-        super(OGRE_NAME, HP, MIN_DMG, MAX_DMG, SPD, HIT,
-                HEAL_CHANCE, MIN_HEAL, MAX_HEAL);
+        super(OGRE_NAME, 200, 30, 60, 2, 0.6, 0.1, 30, 60);
+    }
+
+    // New constructor driven by DB values
+    public Ogre(int hp, int minDmg, int maxDmg, int attackSpd,
+                double hitChance, double healChance, int minHeal, int maxHeal) {
+        super(OGRE_NAME, hp, minDmg, maxDmg, attackSpd, hitChance, healChance, minHeal, maxHeal);
     }
 }
