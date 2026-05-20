@@ -42,10 +42,10 @@ final class WindowScaler {
     double currentFontScale(final Dimension theWindowSize) {
         int width = Math.max(1, theWindowSize.width);
         int height = Math.max(1, theWindowSize.height);
-        double currentArea = (double) width * height;
         Dimension startingSize = scaledStartingSize();
-        double startingArea = (double) startingSize.width * startingSize.height;
-        double windowScale = Math.sqrt(currentArea / startingArea);
+        double widthScale = width / (double) startingSize.width;
+        double heightScale = height / (double) startingSize.height;
+        double windowScale = Math.min(widthScale, heightScale);
         return clamp(deviceScale() * windowScale * myUserScale);
     }
 
@@ -67,6 +67,14 @@ final class WindowScaler {
 
     void resetUserScale() {
         myUserScale = 1.0;
+    }
+
+    void setUserScale(final double theUserScale) {
+        myUserScale = clampUserScale(theUserScale);
+    }
+
+    double userScale() {
+        return myUserScale;
     }
 
     private double deviceScale() {

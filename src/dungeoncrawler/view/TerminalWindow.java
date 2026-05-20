@@ -33,7 +33,9 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -55,6 +57,12 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final Color INVALID_MOVE_BORDER = new Color(255, 85, 85);
     private static final Color CARET = new Color(169, 183, 198);
     private static final Color DOOM_ACCENT = new Color(189, 147, 249);
+    private static final String[] TEXT_SIZE_LABELS = {
+        "Small", "Normal", "Large", "Extra Large"
+    };
+    private static final double[] TEXT_SIZE_SCALES = {
+        0.85, 1.0, 1.20, 1.40
+    };
 
     private final DungeonCrawler myGame;
     private final WindowScaler myWindowScaler;
@@ -147,6 +155,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         header.setBackground(BACKGROUND);
         header.setBorder(BorderFactory.createEmptyBorder(0, 2, 6, 2));
 
+        JPanel titlePanel = new JPanel(new BorderLayout(0, 3));
+        titlePanel.setBackground(BACKGROUND);
+
         JLabel title = new JLabel("Dungeon Crawler");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
@@ -157,9 +168,71 @@ public class TerminalWindow extends JFrame implements Appendable {
         authors.setForeground(FOREGROUND);
         setScalableFont(authors, Font.PLAIN, 13);
 
-        header.add(title, BorderLayout.NORTH);
-        header.add(authors, BorderLayout.SOUTH);
+        titlePanel.add(title, BorderLayout.NORTH);
+        titlePanel.add(authors, BorderLayout.SOUTH);
+        addHeaderContent(header, titlePanel);
         return header;
+    }
+
+    private void addHeaderContent(final JPanel theHeader,
+                                  final JPanel theTitlePanel) {
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setBackground(BACKGROUND);
+        toolbar.add(buildTextSizeButton(), BorderLayout.EAST);
+
+        theHeader.add(toolbar, BorderLayout.NORTH);
+        theHeader.add(theTitlePanel, BorderLayout.CENTER);
+    }
+
+    private JButton buildTextSizeButton() {
+        JButton button = buildButton("Text Size");
+        setScalableFont(button, Font.PLAIN, 13);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+        button.addActionListener(event -> showTextSizeMenu(button));
+        return button;
+    }
+
+    private void showTextSizeMenu(final JButton theButton) {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setBackground(INPUT_BACKGROUND);
+        menu.setBorder(BorderFactory.createLineBorder(BORDER));
+
+        for (int i = 0; i < TEXT_SIZE_LABELS.length; i++) {
+            JMenuItem item = new JMenuItem(TEXT_SIZE_LABELS[i]);
+            if (i == currentTextSizeIndex()) {
+                item.setBackground(DOOM_ACCENT);
+                item.setForeground(EDITOR_BACKGROUND);
+            } else {
+                item.setBackground(INPUT_BACKGROUND);
+                item.setForeground(FOREGROUND);
+            }
+            item.setOpaque(true);
+            setScalableFont(item, Font.PLAIN, 13);
+            final int selectedIndex = i;
+            item.addActionListener(event -> {
+                myWindowScaler.setUserScale(TEXT_SIZE_SCALES[selectedIndex]);
+                refreshContent();
+            });
+            menu.add(item);
+        }
+
+        menu.show(theButton, 0, theButton.getHeight());
+    }
+
+    private int currentTextSizeIndex() {
+        double currentScale = myWindowScaler.userScale();
+        int closestIndex = 0;
+        double closestDistance = Math.abs(currentScale - TEXT_SIZE_SCALES[0]);
+        for (int i = 1; i < TEXT_SIZE_SCALES.length; i++) {
+            double distance = Math.abs(currentScale - TEXT_SIZE_SCALES[i]);
+            if (distance < closestDistance) {
+                closestIndex = i;
+                closestDistance = distance;
+            }
+        }
+        return closestIndex;
     }
 
     private JTextArea buildOutputArea() {
@@ -593,6 +666,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         JPanel header = new JPanel(new BorderLayout(0, 3));
         header.setBackground(BACKGROUND);
 
+        JPanel titlePanel = new JPanel(new BorderLayout(0, 3));
+        titlePanel.setBackground(BACKGROUND);
+
         JLabel title = new JLabel("Dungeon");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
@@ -604,8 +680,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         subtitle.setForeground(FOREGROUND);
         setScalableFont(subtitle, Font.PLAIN, 15);
 
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        titlePanel.add(title, BorderLayout.NORTH);
+        titlePanel.add(subtitle, BorderLayout.SOUTH);
+        addHeaderContent(header, titlePanel);
         return header;
     }
 
@@ -827,6 +904,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         JPanel header = new JPanel(new BorderLayout(0, 3));
         header.setBackground(BACKGROUND);
 
+        JPanel titlePanel = new JPanel(new BorderLayout(0, 3));
+        titlePanel.setBackground(BACKGROUND);
+
         JLabel title = new JLabel("Battle");
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setForeground(DOOM_ACCENT);
@@ -838,8 +918,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         subtitle.setForeground(FOREGROUND);
         setScalableFont(subtitle, Font.PLAIN, 15);
 
-        header.add(title, BorderLayout.NORTH);
-        header.add(subtitle, BorderLayout.SOUTH);
+        titlePanel.add(title, BorderLayout.NORTH);
+        titlePanel.add(subtitle, BorderLayout.SOUTH);
+        addHeaderContent(header, titlePanel);
         return header;
     }
 
