@@ -11,6 +11,9 @@ public class VisionPotion extends Potion {
 
     @Override
     public void apply(final Hero theHero) {
+        for (int i = 0; i < (8 * VISION_RADIUS); i++) {
+
+        }
         // The dungeon uses this potion by showing the surrounding rooms.
     }
 }
