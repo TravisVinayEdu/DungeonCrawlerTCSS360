@@ -7,8 +7,15 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" exported="" name="sqlite-jdbc-3.53.1.0-without-natives" level="project" />
+    <orderEntry type="module-library" exported="">
+      <library name="sqlite-jdbc-3.53.1.0">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/sqlite-jdbc-3.53.1.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="sqlite-jdbc-3.53.1.0-natives-windows" level="project" />
   </component>
 </module>
