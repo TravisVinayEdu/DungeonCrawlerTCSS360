@@ -19,10 +19,20 @@ import java.util.Random;
  * therefore contain no other room features.</p>
  */
 public class Room implements Serializable {
+
+    /** Serial version UID. */
     private static final long serialVersionUID = 1L;
+
+    /** Random Object for deciding whether a feature is present. */
     private static final Random RANDOM = new Random();
+
+    /** Chance of a feature being present in a room. */
     private static final int FEATURE_CHANCE = 10;
+
+    /** Damage taken when falling into a pit. */
     private static final int PIT_DAMAGE = 20;
+
+    /** Directions of doors with integers corresponding to their index in the doors array. */
     private static final int NORTH_INDEX = 0;
     private static final int EAST_INDEX = 1;
     private static final int SOUTH_INDEX = 2;
