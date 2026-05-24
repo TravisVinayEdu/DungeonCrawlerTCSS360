@@ -13,8 +13,15 @@ import java.util.Random;
 import java.io.Serializable;
 
 public class Dungeon implements Serializable {
+
+    /** Used for serialization. */
     private static final long serialVersionUID = 1L;
+
+    /** Random object for deciding whether a feature is present. */
     private static final Random RANDOM = new Random();
+
+    /** Chance of a monster being present in a room. */
+    private static final int MONSTER_CHANCE = 40;
 
     private Room[][] maze;
     private Room[][] discoveredMaze;
@@ -24,8 +31,13 @@ public class Dungeon implements Serializable {
     private int heroRow;
     private int heroCol;
 
-    private static final int MONSTER_CHANCE = 40;
-
+    /**
+     * Constructor for the Dungeon class.
+     * @param theWidth 1-based width of the dungeon
+     * @param theHeight 1-based height of the dungeon
+     * @param db MonsterDatabase object
+     * @throws SQLException if there is a problem connecting to the database
+     */
     public Dungeon(final int theWidth, final int theHeight, MonsterDatabase db) throws SQLException {
         if (theWidth <= 0 || theHeight <= 0) {
             throw new IllegalArgumentException("Dungeon dimensions must be positive.");
@@ -37,7 +49,15 @@ public class Dungeon implements Serializable {
         generateMaze(db);
     }
 
-    // used for loading in a saved game
+    /**
+     * Constructor for the Dungeon class. Used for loading a saved dungeon.
+     * @param maze 2D array of Room objects
+     * @param width 1-based width of the dungeon
+     * @param height 1-based height of the dungeon
+     * @param heroRow 1-based row number of the hero
+     * @param heroCol 1-based column number of the hero
+     * @param discovered The dungeon's vision grid.
+     */
     public Dungeon(Room[][] maze, int width, int height,
             int heroRow, int heroCol, boolean[][] discovered) {
         this.myWidth  = width;
@@ -56,6 +76,11 @@ public class Dungeon implements Serializable {
         this.entrance = maze[0][0];
     }
 
+    /**
+     * Generates the maze.
+     * @param db MonsterDatabase object
+     * @throws SQLException if there is a problem connecting to the database
+     */
     private void generateMaze(MonsterDatabase db) throws SQLException {
         for (int row = 0; row < myHeight; row++) {
             for (int col = 0; col < myWidth; col++) {
@@ -78,6 +103,12 @@ public class Dungeon implements Serializable {
         discoverCurrentRoom();
     }
 
+    /**
+     * Carves the maze recursively.
+     * @param theRow 1-based row number
+     * @param theCol 1-based column number
+     * @param theVisited 2D array of booleans indicating whether a room has been visited
+     */
     private void carveMaze(final int theRow,
                            final int theCol,
                            final boolean[][] theVisited) {
@@ -100,6 +131,9 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Places pillars in the maze.
+     */
     private void placePillars() {
         for (Pillar pillar : Pillar.values()) {
             boolean placed = false;
@@ -113,6 +147,9 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Places monsters in the maze, deprecated in favor of MonsterDatabase.
+     */
     /*private void placeMonsters() {
         for (int i = 0; i < myHeight; i++) {
             for (int j = 0; j < myWidth; j++) {
@@ -124,6 +161,11 @@ public class Dungeon implements Serializable {
         }
     }*/
 
+    /**
+     * Places monsters in the maze.
+     * @param db MonsterDatabase object
+     * @throws SQLException if there is a problem connecting to the database
+     */
     private void placeMonsters(MonsterDatabase db) throws SQLException {
         for (int i = 0; i < myHeight; i++) {
             for (int j = 0; j < myWidth; j++) {
@@ -134,6 +176,9 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Removes pits from the maze until all rooms are connected.
+     */
     private void removeUnavoidablePits() {
         while (!nonPitRoomsStayConnected()) {
             Room pitToRemove = null;
@@ -159,10 +204,18 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Returns true if all non-pit rooms are connected.
+     * @return true if all non-pit rooms are connected
+     */
     private boolean nonPitRoomsStayConnected() {
         return countReachableNonPitRooms() == countNonPitRooms();
     }
 
+    /**
+     * Counts the number of reachable non-pit rooms.
+     * @return the number of reachable non-pit rooms
+     */
     private int countReachableNonPitRooms() {
         boolean[][] visited = new boolean[myHeight][myWidth];
         Queue<int[]> queue = new LinkedList<>();
@@ -200,6 +253,10 @@ public class Dungeon implements Serializable {
         return reachableCount;
     }
 
+    /**
+     * Counts the number of non-pit rooms.
+     * @return the number of non-pit rooms
+     */
     private int countNonPitRooms() {
         int count = 0;
         for (int row = 0; row < myHeight; row++) {
@@ -212,14 +269,29 @@ public class Dungeon implements Serializable {
         return count;
     }
 
+    /**
+     * Returns the room at the specified coordinates.
+     * @param theR 1-based row number
+     * @param theC 1-based column number
+     * @return the room at the specified coordinates
+     */
     public Room getRoom(int theR, int theC) {
         return maze[theR][theC];
     }
 
+    /**
+     * Returns the room the hero is currently in.
+     * @return the room the hero is currently in
+     */
     public Room getCurrentRoom() {
         return maze[heroRow][heroCol];
     }
 
+    /**
+     * Moves the hero in the specified direction.
+     * @param d the direction to move the hero
+     * @return true if the hero moved, false if the hero cannot move in that direction
+     */
     public boolean moveHero(Direction d) {
         if (!maze[heroRow][heroCol].workingDoor(d)) {
             return false;
@@ -237,10 +309,20 @@ public class Dungeon implements Serializable {
         return true;
     }
 
+    /**
+     * Returns the vision grid.
+     * @return the vision grid
+     */
     public Room[][] getVisionGrid() {
         return discoveredMaze;
     }
 
+    /**
+     * Returns true if the specified coordinates are in the vision grid.
+     * @param theRow 1-based row number
+     * @param theCol 1-based column number
+     * @return true if the specified coordinates are in the vision grid
+     */
     public boolean isDiscovered(final int theRow, final int theCol) {
         if (!inBounds(theRow, theCol)) {
             return false;
@@ -248,22 +330,42 @@ public class Dungeon implements Serializable {
         return discoveredMaze[theRow][theCol] != null;
     }
 
+    /**
+     * Gets the hero's row number.
+     * @return the hero's row number
+     */
     public int getHeroRow() {
         return heroRow;
     }
 
+    /**
+     * Gets the hero's column number.
+     * @return the hero's column number
+     */
     public int getHeroCol() {
         return heroCol;
     }
 
+    /**
+     * Gets the width of the dungeon.
+     * @return the width of the dungeon
+     */
     public int getWidth() {
         return myWidth;
     }
 
+    /**
+     * Gets the height of the dungeon.
+     * @return the height of the dungeon
+     */
     public int getHeight() {
         return myHeight;
     }
 
+    /**
+     * Returns a string representation of the dungeon.
+     * @return a string representation of the dungeon
+     */
     @Override
     public String toString() {
         String result = "";
@@ -279,15 +381,29 @@ public class Dungeon implements Serializable {
         return result;
     }
 
+    /**
+     * Discovers the current room.
+     */
     private void discoverCurrentRoom() {
         discoveredMaze[heroRow][heroCol] = maze[heroRow][heroCol];
     }
 
+    /**
+     * Returns true if the specified coordinates are in the maze.
+     * @param theRow 1-based row number
+     * @param theCol 1-based column number
+     * @return true if the specified coordinates are in the maze
+     */
     private boolean inBounds(final int theRow, final int theCol) {
         return theRow >= 0 && theRow < myHeight
                 && theCol >= 0 && theCol < myWidth;
     }
 
+    /**
+     * Returns the delta for moving in the specified direction.
+     * @param theDirection the direction to move in
+     * @return the delta for moving in the specified direction
+     */
     private int rowDelta(final Direction theDirection) {
         switch (theDirection) {
             case NORTH:
@@ -299,6 +415,11 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Returns the delta for moving in the specified direction.
+     * @param theDirection the direction to move in
+     * @return the delta for moving in the specified direction
+     */
     private int colDelta(final Direction theDirection) {
         switch (theDirection) {
             case EAST:
@@ -310,6 +431,11 @@ public class Dungeon implements Serializable {
         }
     }
 
+    /**
+     * Returns the opposite direction of the specified direction.
+     * @param theDirection the direction to get the opposite of
+     * @return the opposite direction of the specified direction
+     */
     private Direction opposite(final Direction theDirection) {
         switch (theDirection) {
             case NORTH:
