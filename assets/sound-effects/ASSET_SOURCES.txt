@@ -1,0 +1,28 @@
+Sound effects used by Dungeon Crawler
+=====================================
+
+These effects are derived from audio created by Kenney and released under
+Creative Commons Zero (CC0). Attribution is not required.
+
+Kenney Interface Sounds:
+https://kenney.nl/assets/interface-sounds
+
+Files selected from the WAV distribution hosted for the Godot Asset Library:
+https://github.com/Calinou/kenney-interface-sounds
+
+menu-button.wav  <- click_001.wav
+pillar-found.wav <- confirmation_001.wav
+battle-win.wav   <- confirmation_004.wav
+battle-lose.wav  <- error_002.wav
+
+Kenney RPG Audio:
+https://kenney.nl/assets/rpg-audio
+
+The CC0 RPG pack was downloaded through Kenney's OpenGameArt release:
+https://opengameart.org/content/50-rpg-sound-effects
+
+attack.wav   <- knifeSlice.ogg, converted to WAV for Java Sound playback
+movement.wav <- footstep00.ogg, converted to WAV for Java Sound playback
+
+License confirmation:
+https://kenney.nl/support

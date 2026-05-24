@@ -71,26 +71,32 @@ public class GameSession implements Serializable {
     }
 
     public MoveResult enterCurrentRoom(final String theBaseMessage) {
+        int pillarCount = myHero.getPillars().size();
         String message = resolveCurrentRoom(theBaseMessage);
         boolean enteredBattle = enterBattleIfMonsterPresent();
-        return new MoveResult(true, enteredBattle, message);
+        return new MoveResult(true, enteredBattle,
+                myHero.getPillars().size() > pillarCount, message);
     }
 
     public MoveResult moveHero(final Direction theDirection) {
         if (myHero.isFainted()) {
-            return new MoveResult(false, false, "You have fallen.");
+            return new MoveResult(false, false, false, "You have fallen.");
         }
         if (isBattleActive()) {
-            return new MoveResult(false, false, "You cannot move during battle.");
+            return new MoveResult(false, false, false,
+                    "You cannot move during battle.");
         }
         if (!myDungeon.moveHero(theDirection)) {
-            return new MoveResult(false, false, "There is no door that way.");
+            return new MoveResult(false, false, false,
+                    "There is no door that way.");
         }
 
+        int pillarCount = myHero.getPillars().size();
         String message = resolveCurrentRoom("Moved "
                 + theDirection.name().toLowerCase() + ".");
         boolean enteredBattle = enterBattleIfMonsterPresent();
-        return new MoveResult(true, enteredBattle, message);
+        return new MoveResult(true, enteredBattle,
+                myHero.getPillars().size() > pillarCount, message);
     }
 
     public Battle.BattleResult attack() {
@@ -186,13 +192,16 @@ public class GameSession implements Serializable {
     public static class MoveResult {
         private final boolean myMoved;
         private final boolean myEnteredBattle;
+        private final boolean myFoundPillar;
         private final String myMessage;
 
         private MoveResult(final boolean theMoved,
                            final boolean theEnteredBattle,
+                           final boolean theFoundPillar,
                            final String theMessage) {
             myMoved = theMoved;
             myEnteredBattle = theEnteredBattle;
+            myFoundPillar = theFoundPillar;
             myMessage = theMessage;
         }
 
@@ -202,6 +211,10 @@ public class GameSession implements Serializable {
 
         public boolean enteredBattle() {
             return myEnteredBattle;
+        }
+
+        public boolean foundPillar() {
+            return myFoundPillar;
         }
 
         public String message() {
