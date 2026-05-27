@@ -92,7 +92,7 @@ Cooldown numbers are rendered by `dungeoncrawler.view.CooldownSpriteIcon` as cus
 
 ## Generated Files
 
-The following files are runtime or IDE output and should not be committed:
+The following files are runtime or IDE output
 
 - `dungeon.db`
 - `saves/`
