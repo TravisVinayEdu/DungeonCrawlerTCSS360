@@ -61,6 +61,36 @@ The module file marks `src/` as the source root and includes `lib/sqlite-jdbc-3.
 
 ## Running from the Command Line
 
+The Makefile is the simplest path on macOS/Linux:
+
+```bash
+make run
+```
+
+Useful targets:
+
+```bash
+make compile
+make run
+make clean
+```
+
+On Windows, use the batch script from Command Prompt or PowerShell:
+
+```bat
+build.bat run
+```
+
+Useful Windows targets:
+
+```bat
+build.bat compile
+build.bat run
+build.bat clean
+```
+
+Manual compile and run commands are below for environments without `make`.
+
 Compile:
 
 ```bash
