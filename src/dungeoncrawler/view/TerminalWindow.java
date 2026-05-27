@@ -86,7 +86,6 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myNewGameButton;
     private JTextArea myBattleHeroDisplay;
     private JTextArea myBattleMonsterDisplay;
-    private JTextArea myBattleSpriteDisplay;
     private JTextArea myBattleLogDisplay;
     private CombatSpritePanel myCombatSpritePanel;
     private JButton myBattleAttackButton;
@@ -999,32 +998,6 @@ public class TerminalWindow extends JFrame implements Appendable {
         return panel;
     }
 
-    private JPanel buildBattleCenterPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 14));
-        panel.setBackground(BACKGROUND);
-        panel.add(buildBattleSpritePanel(), BorderLayout.NORTH);
-        panel.add(buildBattleLogPanel(), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel buildBattleSpritePanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setBackground(BACKGROUND);
-
-        JLabel label = buildCharacterLabel("Monster Sprite");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        myBattleSpriteDisplay = buildOutputArea();
-        myBattleSpriteDisplay.setRows(8);
-        myBattleSpriteDisplay.setColumns(44);
-        myBattleSpriteDisplay.setLineWrap(false);
-        myBattleSpriteDisplay.setWrapStyleWord(false);
-        myBattleSpriteDisplay.setText(buildMonsterAsciiSprite());
-
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(wrapTextArea(myBattleSpriteDisplay), BorderLayout.CENTER);
-        return panel;
-    }
-
     private JPanel buildBattleLogPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
@@ -1104,6 +1077,7 @@ public class TerminalWindow extends JFrame implements Appendable {
             mySoundEffects.play(Cue.BATTLE_WIN);
         } else if (theResult.isHeroDefeated()) {
             mySoundEffects.play(Cue.BATTLE_LOSE);
+        }
         if (myCombatSpritePanel != null) {
             myCombatSpritePanel.setCombatants(battle());
             myCombatSpritePanel.playBattleResult(theResult);
@@ -1153,17 +1127,6 @@ public class TerminalWindow extends JFrame implements Appendable {
         if (myBattleNewGameButton != null) {
             myBattleNewGameButton.setEnabled(!active);
         }
-    }
-
-    private String buildMonsterAsciiSprite() {
-        String lineSeparator = System.lineSeparator();
-        return "                 .-^^^^^-." + lineSeparator
-                + "                /  o   o  \\" + lineSeparator
-                + "               |     ^     |" + lineSeparator
-                + "               |   \\___/   |" + lineSeparator
-                + "                \\_________/" + lineSeparator
-                + "                  /|   |\\" + lineSeparator
-                + "                 /_|___|_\\";
     }
 
     private String battleReturnText(final boolean theBattleActive) {

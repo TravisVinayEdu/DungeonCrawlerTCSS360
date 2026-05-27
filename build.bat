@@ -1,6 +1,7 @@
 @echo off
 setlocal
 
+set "JAVA_RELEASE=21"
 set "MAIN_CLASS=dungeoncrawler.controller.DungeonCrawler"
 set "BUILD_DIR=out\production\DungeonCrawlerTCSS360"
 set "SQLITE_JAR=lib\sqlite-jdbc-3.53.1.0.jar"
@@ -21,7 +22,7 @@ goto help
 if not exist "out" mkdir "out"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 dir /s /b "src\*.java" > "%SOURCES_FILE%"
-javac -cp "%SQLITE_JAR%" -d "%BUILD_DIR%" @"%SOURCES_FILE%"
+javac --release %JAVA_RELEASE% -cp "%SQLITE_JAR%" -d "%BUILD_DIR%" @"%SOURCES_FILE%"
 if errorlevel 1 exit /b 1
 exit /b 0
 

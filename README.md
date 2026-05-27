@@ -37,7 +37,7 @@ dungeoncrawler.controller.DungeonCrawler
 
 ## Requirements
 
-- JDK 17 or newer.
+- JDK 21.
 - IntelliJ IDEA, or another Java IDE that can include local jar dependencies.
 - SQLite JDBC jar included at `lib/sqlite-jdbc-3.53.1.0.jar`.
 
@@ -45,9 +45,10 @@ No external database server is required. The application creates `dungeon.db` in
 
 ## Running in IntelliJ
 
-1. Open the repository folder in IntelliJ.
-2. Use the committed `DungeonCrawlerTCSS360.iml` module file.
-3. Run the `DungeonCrawler` application configuration.
+1. Install a JDK 21 distribution.
+2. Open the repository folder in IntelliJ.
+3. Use the committed `DungeonCrawlerTCSS360.iml` module file and the `21` project SDK.
+4. Run the `DungeonCrawler` application configuration.
 
 The committed run configuration uses:
 
@@ -57,7 +58,7 @@ VM options: --enable-native-access=ALL-UNNAMED
 Module: DungeonCrawlerTCSS360
 ```
 
-The module file marks `src/` as the source root and includes `lib/sqlite-jdbc-3.53.1.0.jar` as a module library, so the SQLite driver is available when running from IntelliJ.
+The project metadata sets the language level and bytecode target to Java 21. The module file marks `src/` as the source root and includes `lib/sqlite-jdbc-3.53.1.0.jar` as a module library, so the SQLite driver is available when running from IntelliJ.
 
 ## Running from the Command Line
 
@@ -95,7 +96,7 @@ Compile:
 
 ```bash
 mkdir -p out/production/DungeonCrawlerTCSS360
-javac -cp lib/sqlite-jdbc-3.53.1.0.jar -d out/production/DungeonCrawlerTCSS360 $(find src -name '*.java')
+javac --release 21 -cp lib/sqlite-jdbc-3.53.1.0.jar -d out/production/DungeonCrawlerTCSS360 $(find src -name '*.java')
 ```
 
 Run:
@@ -122,7 +123,7 @@ Cooldown numbers are rendered by `dungeoncrawler.view.CooldownSpriteIcon` as cus
 
 ## Generated Files
 
-The following files are runtime or IDE outpu
+The following files are runtime or IDE output:
 
 - `dungeon.db`
 - `saves/`
