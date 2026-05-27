@@ -6,6 +6,12 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="sqlite-jdbc-3.53.1.0" level="project" />
+    <orderEntry type="library" name="sqlite-jdbc-3.53.1.0-natives-windows" level="project" />
+    <orderEntry type="library" name="sqlite-jdbc-3.53.1.0-without-natives" level="project" />
+  </component>
+</module>
     <orderEntry type="module-library" exported="">
       <library name="sqlite-jdbc-3.53.1.0">
         <CLASSES>

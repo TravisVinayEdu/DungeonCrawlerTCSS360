@@ -1,5 +1,7 @@
 package dungeoncrawler.view;
 
+import dungeoncrawler.audio.SoundEffectPlayer;
+import dungeoncrawler.audio.SoundEffectPlayer.Cue;
 import dungeoncrawler.combat.Battle;
 import dungeoncrawler.controller.DungeonCrawler;
 import dungeoncrawler.controller.GameSession;
@@ -68,6 +70,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private final WindowScaler myWindowScaler;
     private final ScalableFontManager myFontManager;
     private final DungeonMapRenderer myMapRenderer;
+    private final SoundEffectPlayer mySoundEffects;
     private final JTextArea myOutput;
     private final JTextField myInput;
     private GameSession mySession;
@@ -83,6 +86,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myNewGameButton;
     private JTextArea myBattleHeroDisplay;
     private JTextArea myBattleMonsterDisplay;
+    private JTextArea myBattleSpriteDisplay;
     private JTextArea myBattleLogDisplay;
     private CombatSpritePanel myCombatSpritePanel;
     private JButton myBattleAttackButton;
@@ -98,6 +102,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         myWindowScaler = new WindowScaler();
         myFontManager = new ScalableFontManager(this, myWindowScaler);
         myMapRenderer = new DungeonMapRenderer();
+        mySoundEffects = new SoundEffectPlayer();
         myOutput = buildOutputArea();
         myInput = buildInputField();
 
@@ -118,6 +123,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         updateScaledFonts();
         setVisible(true);
         myInput.requestFocusInWindow();
+    }
+
+    @Override
+    public void dispose() {
+        mySoundEffects.close();
+        super.dispose();
     }
 
     @Override
@@ -186,7 +197,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private JButton buildTextSizeButton() {
-        JButton button = buildButton("Text Size");
+        JButton button = buildMenuButton("Text Size");
         setScalableFont(button, Font.PLAIN, 13);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -213,6 +224,7 @@ public class TerminalWindow extends JFrame implements Appendable {
             setScalableFont(item, Font.PLAIN, 13);
             final int selectedIndex = i;
             item.addActionListener(event -> {
+                mySoundEffects.play(Cue.MENU_BUTTON);
                 myWindowScaler.setUserScale(TEXT_SIZE_SCALES[selectedIndex]);
                 refreshContent();
             });
@@ -426,8 +438,8 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         JPanel controls = new JPanel(new GridLayout(1, 2, 10, 0));
         controls.setBackground(BACKGROUND);
-        JButton backButton = buildButton("Back");
-        JButton beginButton = buildButton("Begin Adventure");
+        JButton backButton = buildMenuButton("Back");
+        JButton beginButton = buildMenuButton("Begin Adventure");
         controls.add(backButton);
         controls.add(beginButton);
 
@@ -447,7 +459,7 @@ public class TerminalWindow extends JFrame implements Appendable {
                 throw new RuntimeException(e);
             }
         });
-        nameField.addActionListener(beginButton.getActionListeners()[0]);
+        nameField.addActionListener(event -> beginButton.doClick());
 
         JPanel bottomPanel = new JPanel(new BorderLayout(0, 10));
         bottomPanel.setBackground(BACKGROUND);
@@ -484,7 +496,7 @@ public class TerminalWindow extends JFrame implements Appendable {
                 savePanel.add(emptyLabel);
             } else {
                 for (String save : saves) {
-                    JButton loadButton = buildButton(save);
+                    JButton loadButton = buildMenuButton(save);
                     loadButton.addActionListener(event -> loadSelectedGame(save));
                     savePanel.add(loadButton);
                 }
@@ -498,8 +510,8 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         JPanel controls = new JPanel(new GridLayout(1, 2, 10, 0));
         controls.setBackground(BACKGROUND);
-        JButton backButton = buildButton("Back");
-        JButton newGameButton = buildButton("New Game");
+        JButton backButton = buildMenuButton("Back");
+        JButton newGameButton = buildMenuButton("New Game");
         backButton.addActionListener(event -> showTerminal());
         newGameButton.addActionListener(event -> showCharacterCreation());
         controls.add(backButton);
@@ -557,6 +569,7 @@ public class TerminalWindow extends JFrame implements Appendable {
                 BorderFactory.createLineBorder(BORDER),
                 BorderFactory.createEmptyBorder(12, 12, 12, 12)));
         button.setFocusPainted(false);
+        button.addActionListener(event -> mySoundEffects.play(Cue.MENU_BUTTON));
         return button;
     }
 
@@ -603,6 +616,12 @@ public class TerminalWindow extends JFrame implements Appendable {
         return button;
     }
 
+    private JButton buildMenuButton(final String theText) {
+        JButton button = buildButton(theText);
+        button.addActionListener(event -> mySoundEffects.play(Cue.MENU_BUTTON));
+        return button;
+    }
+
     private String getSelectedClassName(final ButtonGroup theClassGroup) {
         return theClassGroup.getSelection().getActionCommand();
     }
@@ -634,6 +653,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         showDungeonView();
         GameSession.MoveResult result = mySession.enterCurrentRoom("You enter the dungeon.");
         setStatus(result.message());
+        playRoomResultSound(result);
         updateGameView();
         if (result.enteredBattle()) {
             showBattleScreen();
@@ -761,8 +781,8 @@ public class TerminalWindow extends JFrame implements Appendable {
         myEastButton = buildMoveButton("[D] East", Direction.EAST);
         mySouthButton = buildMoveButton("[S] South", Direction.SOUTH);
         myWestButton = buildMoveButton("[A] West", Direction.WEST);
-        mySaveButton = buildButton("Save");
-        myNewGameButton = buildButton("New Game");
+        mySaveButton = buildMenuButton("Save");
+        myNewGameButton = buildMenuButton("New Game");
         mySaveButton.addActionListener(event -> saveCurrentGame());
         myNewGameButton.addActionListener(event -> showCharacterCreation());
         controls.add(myNorthButton);
@@ -829,12 +849,22 @@ public class TerminalWindow extends JFrame implements Appendable {
             return;
         }
 
+        mySoundEffects.play(Cue.MOVEMENT);
         GameSession.MoveResult result = mySession.moveHero(theDirection);
         setStatus(result.message());
+        playRoomResultSound(result);
         updateGameView();
         updateMoveFeedback(theDirection, result.moved());
         if (result.enteredBattle()) {
             showBattleScreen();
+        }
+    }
+
+    private void playRoomResultSound(final GameSession.MoveResult theResult) {
+        if (hero().isFainted()) {
+            mySoundEffects.play(Cue.BATTLE_LOSE);
+        } else if (theResult.foundPillar()) {
+            mySoundEffects.play(Cue.PILLAR_FOUND);
         }
     }
 
@@ -969,6 +999,32 @@ public class TerminalWindow extends JFrame implements Appendable {
         return panel;
     }
 
+    private JPanel buildBattleCenterPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BACKGROUND);
+        panel.add(buildBattleSpritePanel(), BorderLayout.NORTH);
+        panel.add(buildBattleLogPanel(), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildBattleSpritePanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBackground(BACKGROUND);
+
+        JLabel label = buildCharacterLabel("Monster Sprite");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        myBattleSpriteDisplay = buildOutputArea();
+        myBattleSpriteDisplay.setRows(8);
+        myBattleSpriteDisplay.setColumns(44);
+        myBattleSpriteDisplay.setLineWrap(false);
+        myBattleSpriteDisplay.setWrapStyleWord(false);
+        myBattleSpriteDisplay.setText(buildMonsterAsciiSprite());
+
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(wrapTextArea(myBattleSpriteDisplay), BorderLayout.CENTER);
+        return panel;
+    }
+
     private JPanel buildBattleLogPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(BACKGROUND);
@@ -992,11 +1048,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         myBattleSpecialButton = buildButton("Special Skill");
         myBattleHealButton = buildButton("Healing Potion");
         myBattleVisionButton = buildButton("Vision Potion");
-        myBattleRunButton = buildButton("Run");
-        myBattleNewGameButton = buildButton("New Game");
+        myBattleRunButton = buildMenuButton("Run");
+        myBattleNewGameButton = buildMenuButton("New Game");
 
-        myBattleAttackButton.addActionListener(
-                event -> handleBattleResult(mySession.attack()));
+        myBattleAttackButton.addActionListener(event -> {
+            mySoundEffects.play(Cue.ATTACK);
+            handleBattleResult(mySession.attack());
+        });
         myBattleSpecialButton.addActionListener(
                 event -> handleBattleResult(mySession.specialSkill()));
         myBattleHealButton.addActionListener(
@@ -1042,6 +1100,10 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void handleBattleResult(final Battle.BattleResult theResult) {
         appendBattleMessages(theResult);
+        if (theResult.isMonsterDefeated()) {
+            mySoundEffects.play(Cue.BATTLE_WIN);
+        } else if (theResult.isHeroDefeated()) {
+            mySoundEffects.play(Cue.BATTLE_LOSE);
         if (myCombatSpritePanel != null) {
             myCombatSpritePanel.setCombatants(battle());
             myCombatSpritePanel.playBattleResult(theResult);
@@ -1091,6 +1153,17 @@ public class TerminalWindow extends JFrame implements Appendable {
         if (myBattleNewGameButton != null) {
             myBattleNewGameButton.setEnabled(!active);
         }
+    }
+
+    private String buildMonsterAsciiSprite() {
+        String lineSeparator = System.lineSeparator();
+        return "                 .-^^^^^-." + lineSeparator
+                + "                /  o   o  \\" + lineSeparator
+                + "               |     ^     |" + lineSeparator
+                + "               |   \\___/   |" + lineSeparator
+                + "                \\_________/" + lineSeparator
+                + "                  /|   |\\" + lineSeparator
+                + "                 /_|___|_\\";
     }
 
     private String battleReturnText(final boolean theBattleActive) {
