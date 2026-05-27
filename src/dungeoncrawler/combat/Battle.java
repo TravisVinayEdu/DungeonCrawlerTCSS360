@@ -29,11 +29,15 @@ public class Battle {
     private static final int MAX_PRIESTESS_HEAL = 45;
     private static final double SURPRISE_SUCCESS_CHANCE = 0.4;
     private static final double SURPRISE_CAUGHT_CHANCE = 0.2;
+    private static final int SPECIAL_SKILL_COOLDOWN_TURNS = 3;
+    private static final int POTION_COOLDOWN_TURNS = 2;
 
     private final Hero myHero;
     private final Monster myMonster;
     private boolean myOver;
     private boolean myEscaped;
+    private int mySpecialSkillCooldown;
+    private int myPotionCooldown;
 
     public Battle(final Hero theHero, final Monster theMonster) {
         if (theHero == null) {
@@ -68,11 +72,25 @@ public class Battle {
     }
 
     public boolean canUseHealingPotion() {
-        return isActive() && myHero.getHealingPotions() > 0;
+        return isActive() && myHero.getHealingPotions() > 0
+                && myPotionCooldown == 0;
     }
 
     public boolean canUseVisionPotion() {
-        return isActive() && myHero.getVisionPotions() > 0;
+        return isActive() && myHero.getVisionPotions() > 0
+                && myPotionCooldown == 0;
+    }
+
+    public boolean canUseSpecialSkill() {
+        return isActive() && mySpecialSkillCooldown == 0;
+    }
+
+    public int getSpecialSkillCooldown() {
+        return mySpecialSkillCooldown;
+    }
+
+    public int getPotionCooldown() {
+        return myPotionCooldown;
     }
 
     public BattleResult attack() {
@@ -81,6 +99,7 @@ public class Battle {
             return result;
         }
 
+        advanceCooldowns();
         int attacks = myHero.attacksPerRoundAgainst(myMonster);
         if (attacks > 1) {
             result.add(myHero.getName() + "'s speed grants "
@@ -101,8 +120,16 @@ public class Battle {
         if (!ensureActive(result)) {
             return result;
         }
+        if (mySpecialSkillCooldown > 0) {
+            result.add("Special skill is cooling down for "
+                    + mySpecialSkillCooldown + " more turn"
+                    + plural(mySpecialSkillCooldown) + ".");
+            return result;
+        }
 
+        advanceCooldowns();
         performSpecialSkill(result);
+        mySpecialSkillCooldown = SPECIAL_SKILL_COOLDOWN_TURNS;
 
         if (isActive()) {
             performMonsterTurn(result);
@@ -119,9 +146,17 @@ public class Battle {
             result.add("No healing potions remain.");
             return result;
         }
+        if (myPotionCooldown > 0) {
+            result.add("Potions are cooling down for "
+                    + myPotionCooldown + " more turn"
+                    + plural(myPotionCooldown) + ".");
+            return result;
+        }
 
+        advanceCooldowns();
         int before = myHero.getHitPoints();
         myHero.usePotion(new HealingPotion());
+        myPotionCooldown = POTION_COOLDOWN_TURNS;
         int healed = myHero.getHitPoints() - before;
         if (healed > 0) {
             result.add(myHero.getName() + " drinks a healing potion and recovers "
@@ -146,6 +181,12 @@ public class Battle {
             result.add("No vision potions remain.");
             return result;
         }
+        if (myPotionCooldown > 0) {
+            result.add("Potions are cooling down for "
+                    + myPotionCooldown + " more turn"
+                    + plural(myPotionCooldown) + ".");
+            return result;
+        }
 
         result.add("Vision potions are for exploring the dungeon, not battle.");
         return result;
@@ -163,6 +204,19 @@ public class Battle {
                     + myMonster.getName() + ".");
         }
         return finish(result);
+    }
+
+    private void advanceCooldowns() {
+        if (mySpecialSkillCooldown > 0) {
+            mySpecialSkillCooldown--;
+        }
+        if (myPotionCooldown > 0) {
+            myPotionCooldown--;
+        }
+    }
+
+    private String plural(final int theTurns) {
+        return theTurns == 1 ? "" : "s";
     }
 
     private void performMonsterTurn(final BattleResult theResult) {

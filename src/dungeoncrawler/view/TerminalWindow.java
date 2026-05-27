@@ -88,6 +88,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JTextArea myBattleMonsterDisplay;
     private JTextArea myBattleSpriteDisplay;
     private JTextArea myBattleLogDisplay;
+    private CombatSpritePanel myCombatSpritePanel;
     private JButton myBattleAttackButton;
     private JButton myBattleSpecialButton;
     private JButton myBattleHealButton;
@@ -930,6 +931,18 @@ public class TerminalWindow extends JFrame implements Appendable {
         refreshContent();
     }
 
+    private JPanel buildBattleCenterPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 12));
+        panel.setBackground(BACKGROUND);
+
+        myCombatSpritePanel = new CombatSpritePanel();
+        myCombatSpritePanel.setCombatants(battle());
+
+        panel.add(myCombatSpritePanel, BorderLayout.NORTH);
+        panel.add(buildBattleLogPanel(), BorderLayout.CENTER);
+        return panel;
+    }
+
     private JPanel buildBattleHeader() {
         JPanel header = new JPanel(new BorderLayout(0, 3));
         header.setBackground(BACKGROUND);
@@ -1091,6 +1104,9 @@ public class TerminalWindow extends JFrame implements Appendable {
             mySoundEffects.play(Cue.BATTLE_WIN);
         } else if (theResult.isHeroDefeated()) {
             mySoundEffects.play(Cue.BATTLE_LOSE);
+        if (myCombatSpritePanel != null) {
+            myCombatSpritePanel.setCombatants(battle());
+            myCombatSpritePanel.playBattleResult(theResult);
         }
         updateBattleView();
     }
@@ -1123,11 +1139,13 @@ public class TerminalWindow extends JFrame implements Appendable {
 
         boolean active = mySession != null && mySession.isBattleActive();
         setBattleButtonEnabled(myBattleAttackButton, active);
-        setBattleButtonEnabled(myBattleSpecialButton, active);
+        setBattleButtonEnabled(myBattleSpecialButton,
+                active && battle().canUseSpecialSkill());
         setBattleButtonEnabled(myBattleHealButton,
                 active && battle().canUseHealingPotion());
         setBattleButtonEnabled(myBattleVisionButton,
                 active && battle().canUseVisionPotion());
+        updateBattleActionLabels(active);
         if (myBattleRunButton != null) {
             myBattleRunButton.setText(battleReturnText(active));
             myBattleRunButton.setEnabled(mySession != null && mySession.isInBattle());
@@ -1165,6 +1183,47 @@ public class TerminalWindow extends JFrame implements Appendable {
         }
     }
 
+    private void updateBattleActionLabels(final boolean theBattleActive) {
+        if (battle() == null) {
+            return;
+        }
+        setCooldownBadge(myBattleSpecialButton,
+                "Special Skill",
+                theBattleActive ? battle().getSpecialSkillCooldown() : 0);
+        setCooldownBadge(myBattleHealButton,
+                "Healing Potion",
+                theBattleActive ? battle().getPotionCooldown() : 0);
+        setCooldownBadge(myBattleVisionButton,
+                "Vision Potion",
+                theBattleActive ? battle().getPotionCooldown() : 0);
+    }
+
+    private void setCooldownBadge(final JButton theButton,
+                                  final String theText,
+                                  final int theCooldown) {
+        if (theButton == null) {
+            return;
+        }
+        theButton.setText(theText);
+        theButton.setHorizontalTextPosition(SwingConstants.LEFT);
+        theButton.setIconTextGap(8);
+        if (theCooldown <= 0) {
+            theButton.setIcon(null);
+            theButton.setDisabledIcon(null);
+            theButton.setToolTipText(null);
+            return;
+        }
+        CooldownSpriteIcon icon = new CooldownSpriteIcon(theCooldown);
+        theButton.setIcon(icon);
+        theButton.setDisabledIcon(icon);
+        theButton.setToolTipText(theText + " cooldown: "
+                + theCooldown + " turn" + plural(theCooldown) + " remaining.");
+    }
+
+    private String plural(final int theCount) {
+        return theCount == 1 ? "" : "s";
+    }
+
     private String buildBattleHeroText() {
         return "Class: " + hero().getClass().getSimpleName()
                 + System.lineSeparator() + "Name: " + hero().getName()
@@ -1177,6 +1236,10 @@ public class TerminalWindow extends JFrame implements Appendable {
                 + System.lineSeparator() + "Block Chance: " + percent(hero().getChanceToBlock())
                 + System.lineSeparator() + "Healing Potions: " + hero().getHealingPotions()
                 + System.lineSeparator() + "Vision Potions: " + hero().getVisionPotions()
+                + System.lineSeparator() + "Special CD: "
+                + battle().getSpecialSkillCooldown()
+                + System.lineSeparator() + "Potion CD: "
+                + battle().getPotionCooldown()
                 + System.lineSeparator() + "Pillars: " + hero().getPillars();
     }
 

@@ -12,3 +12,15 @@
     <orderEntry type="library" name="sqlite-jdbc-3.53.1.0-without-natives" level="project" />
   </component>
 </module>
+    <orderEntry type="module-library" exported="">
+      <library name="sqlite-jdbc-3.53.1.0">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/sqlite-jdbc-3.53.1.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
