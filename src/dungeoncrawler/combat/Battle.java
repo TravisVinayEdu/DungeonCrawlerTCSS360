@@ -22,14 +22,30 @@ import java.util.Random;
  */
 public class Battle {
     private static final Random RANDOM = new Random();
+
+    /** Chance for warrrior skill to hit the enemy **/
     private static final double CRUSHING_BLOW_CHANCE = 0.4;
+
+    /** Minimum damage crushing blow can inflict **/
     private static final int MIN_CRUSHING_BLOW_DMG = 75;
+
+    /** Maximum damagte crushing blow can inflict **/
     private static final int MAX_CRUSHING_BLOW_DMG = 175;
+
+    /** Minimum healing priestess skill can heal **/
     private static final int MIN_PRIESTESS_HEAL = 25;
+
+    /** Maximum healing priestess skill can heal **/
     private static final int MAX_PRIESTESS_HEAL = 45;
+
+    /** Chance that the theif will surpise the monster **/
     private static final double SURPRISE_SUCCESS_CHANCE = 0.4;
     private static final double SURPRISE_CAUGHT_CHANCE = 0.2;
+
+    /** Number of turns a special skill is cooling down for **/
     private static final int SPECIAL_SKILL_COOLDOWN_TURNS = 3;
+
+    /** Number of turns a potion is cooling down for **/
     private static final int POTION_COOLDOWN_TURNS = 2;
 
     private final Hero myHero;
@@ -39,6 +55,7 @@ public class Battle {
     private int mySpecialSkillCooldown;
     private int myPotionCooldown;
 
+    /** Creates a battle between the given hero and monster. **/
     public Battle(final Hero theHero, final Monster theMonster) {
         if (theHero == null) {
             throw new IllegalArgumentException("Hero cannot be null.");
@@ -59,28 +76,33 @@ public class Battle {
         return myMonster;
     }
 
+    /** Returns true if the battle is still active. **/
     public boolean isActive() {
         return !myOver && !myEscaped
                 && !myHero.isFainted()
                 && !myMonster.isFainted();
     }
 
+    /** Returns true if the battle is over. **/
     public boolean isOver() {
         return myOver || myEscaped
                 || myHero.isFainted()
                 || myMonster.isFainted();
     }
 
+    /** Returns true if the hero can use healing potions. **/
     public boolean canUseHealingPotion() {
         return isActive() && myHero.getHealingPotions() > 0
                 && myPotionCooldown == 0;
     }
 
+    /** Returns true if the hero can use vision potions. **/
     public boolean canUseVisionPotion() {
         return isActive() && myHero.getVisionPotions() > 0
                 && myPotionCooldown == 0;
     }
 
+    /** Returns true if the hero can use a special skill. **/
     public boolean canUseSpecialSkill() {
         return isActive() && mySpecialSkillCooldown == 0;
     }
@@ -93,6 +115,10 @@ public class Battle {
         return myPotionCooldown;
     }
 
+    /**
+     * Works through an attack process mid-battle
+     * @return The result of the battle
+     */
     public BattleResult attack() {
         BattleResult result = new BattleResult();
         if (!ensureActive(result)) {
@@ -115,6 +141,10 @@ public class Battle {
         return finish(result);
     }
 
+    /**
+     * Uses the special skill of that hero.
+     * @return The result of the battle
+     */
     public BattleResult specialSkill() {
         BattleResult result = new BattleResult();
         if (!ensureActive(result)) {
@@ -137,6 +167,10 @@ public class Battle {
         return finish(result);
     }
 
+    /**
+     * Uses a healing potion.
+     * @return The result of the battle
+     */
     public BattleResult useHealingPotion() {
         BattleResult result = new BattleResult();
         if (!ensureActive(result)) {
@@ -172,6 +206,10 @@ public class Battle {
         return finish(result);
     }
 
+    /**
+     * Uses a vision potion.
+     * @return The result of the battle
+     */
     public BattleResult useVisionPotion() {
         BattleResult result = new BattleResult();
         if (!ensureActive(result)) {
@@ -192,6 +230,10 @@ public class Battle {
         return result;
     }
 
+    /**
+     * The hero attempts to escape from the monster.
+     * @return the result of the battle
+     */
     public BattleResult run() {
         BattleResult result = new BattleResult();
         if (myEscaped) {
@@ -206,6 +248,7 @@ public class Battle {
         return finish(result);
     }
 
+    /** Returns true if the hero has fainted. **/
     private void advanceCooldowns() {
         if (mySpecialSkillCooldown > 0) {
             mySpecialSkillCooldown--;
@@ -215,10 +258,19 @@ public class Battle {
         }
     }
 
+    /** Returns "s" if the given number is not 1. **/
     private String plural(final int theTurns) {
         return theTurns == 1 ? "" : "s";
     }
 
+    /**
+    * Executes the monster's turn during the battle. The monster may attack the hero multiple times
+    * based on its speed relative to the hero. Each attack is processed individually, and messages
+    * describing the events are added to the battle result.
+    *
+    * @param theResult The result object to store messages and state changes related to the current
+    *                  turn of the monster.
+    */
     private void performMonsterTurn(final BattleResult theResult) {
         int attacks = myMonster.attacksPerRoundAgainst(myHero);
         if (attacks > 1) {
@@ -230,6 +282,10 @@ public class Battle {
         }
     }
 
+    /**
+     * Performs the special skill of the hero.
+     * @param theResult The result object to store messages and state changes related to the current
+     */
     private void performSpecialSkill(final BattleResult theResult) {
         if (myHero instanceof Warrior) {
             performCrushingBlow(theResult);
@@ -251,6 +307,15 @@ public class Battle {
         }
     }
 
+    /**
+ * Executes the hero's Crushing Blow attack during the battle. If successful,
+ * it deals a random amount of damage to the monster. The result of the attack,
+ * including misses, damage dealt, and any subsequent healing by the monster,
+ * is added to the provided BattleResult object.
+ *
+ * @param theResult The result object to store messages and state updates
+ *                  related to the Crushing Blow attack.
+ */
     private void performCrushingBlow(final BattleResult theResult) {
         theResult.add(myHero.getName() + " attempts Crushing Blow.");
         if (RANDOM.nextDouble() > CRUSHING_BLOW_CHANCE) {
@@ -270,6 +335,10 @@ public class Battle {
         }
     }
 
+    /**
+     * Performs the hero's Priestess Heal skill.
+     * @param theResult The result object to store messages and state changes related to the current
+     */
     private void performPriestessHeal(final BattleResult theResult) {
         int before = myHero.getHitPoints();
         int healed = myHero.heal(randomInRange(MIN_PRIESTESS_HEAL, MAX_PRIESTESS_HEAL));
@@ -284,6 +353,14 @@ public class Battle {
         }
     }
 
+    /**
+ * Executes the hero's Surprise Attack during the battle. Depending on a random chance,
+ * the hero may catch the monster off guard, fail and be caught, or execute a normal attack.
+ * If successful, the hero may follow up with a second strike.
+ *
+ * @param theResult The result object to store messages and state changes related to
+ *                  the Surprise Attack execution.
+ */
     private void performSurpriseAttack(final BattleResult theResult) {
         double roll = RANDOM.nextDouble();
         if (roll < SURPRISE_SUCCESS_CHANCE) {
@@ -304,6 +381,12 @@ public class Battle {
         }
     }
 
+    /**
+     * Performs an attack action between two characters.
+     * @param theAttacker The attacker character.
+     * @param theDefender The defender character.
+     * @param theResult The result object to store messages and state changes related to the current
+     */
     private void performAttack(final DungeonCharacter theAttacker,
                                final DungeonCharacter theDefender,
                                final BattleResult theResult) {
@@ -331,6 +414,13 @@ public class Battle {
         describeMonsterHealing(theDefender, before, damageTaken, theResult);
     }
 
+    /**
+     * Describes the healing done by a monster to a character.
+     * @param theDefender The character that was healed.
+     * @param theBefore Monster health before
+     * @param theDamageTaken Amount of damage dealt to the character
+     * @param theResult The result object to store messages and state changes related to the current
+     */
     private void describeMonsterHealing(final DungeonCharacter theDefender,
                                         final int theBefore,
                                         final int theDamageTaken,
@@ -347,6 +437,12 @@ public class Battle {
         }
     }
 
+    /**
+     * Describes the hit point change of a character.
+     * @param theCharacter The character whose hit point change is being described.
+     * @param theBefore The hit point value before the change.
+     * @param theResult The result object to store messages and state changes related to the current
+     */
     private void describeHitPointChange(final DungeonCharacter theCharacter,
                                         final int theBefore,
                                         final BattleResult theResult) {
@@ -360,6 +456,11 @@ public class Battle {
         }
     }
 
+    /**
+     * Ensures that the battle is still active. If not, adds an appropriate message to the result.
+     * @param theResult The result object to store messages related to the battle status.
+     * @return true if the battle is still active, false otherwise.
+     */
     private boolean ensureActive(final BattleResult theResult) {
         if (isActive()) {
             return true;
@@ -368,6 +469,11 @@ public class Battle {
         return false;
     }
 
+    /**
+     * Finishes the battle and sets the appropriate flags based on the outcome.
+     * @param theResult The result object to store messages related to the battle outcome.
+     * @return The updated BattleResult object with the battle status and messages.
+     */
     private BattleResult finish(final BattleResult theResult) {
         if (myHero.isFainted()) {
             myOver = true;
@@ -389,6 +495,12 @@ public class Battle {
         return theResult;
     }
 
+    /**
+     * Returns a random integer between the specified minimum and maximum values, inclusive.
+     * @param theMin The minimum value (inclusive).
+     * @param theMax The maximum value (inclusive).
+     * @return The randomly generated integer.
+     */
     private int randomInRange(final int theMin, final int theMax) {
         if (theMax < theMin) {
             throw new IllegalArgumentException("Random range is invalid.");
@@ -403,10 +515,12 @@ public class Battle {
         private boolean myMonsterDefeated;
         private boolean myEscaped;
 
+        /** Creates a new BattleResult object with no messages. **/
         private BattleResult() {
             myMessages = new ArrayList<>();
         }
 
+        /** Adds a message to the battle result. **/
         private void add(final String theMessage) {
             myMessages.add(theMessage);
         }
