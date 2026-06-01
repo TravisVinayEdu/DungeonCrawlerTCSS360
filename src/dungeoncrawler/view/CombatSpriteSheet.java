@@ -12,7 +12,7 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 /**
- * Loads and slices the generated combat sprite sheet.
+ * Loads and slices the combat sprite sheet.
  */
 final class CombatSpriteSheet {
     private static final String RESOURCE_PATH = "/assets/sprites/combat_sprites.png";
@@ -38,7 +38,7 @@ final class CombatSpriteSheet {
                 return new CombatSpriteSheet(sheet);
             }
         } catch (IOException exception) {
-            // Fall back to generated silhouettes below.
+            // Fall back to built-in silhouettes below.
         }
         return new CombatSpriteSheet(buildFallbackSheet());
     }

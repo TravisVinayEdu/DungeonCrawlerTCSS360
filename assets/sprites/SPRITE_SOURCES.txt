@@ -1,0 +1,50 @@
+Combat sprite sources
+=====================
+
+Most battle sprites are derived from Kenney Tiny Dungeon.
+
+Creator:
+Kenney
+
+License:
+Creative Commons Zero (CC0)
+
+Official source:
+https://kenney.nl/assets/tiny-dungeon
+
+OpenGameArt release used for download:
+https://opengameart.org/content/tiny-dungeon
+
+Itch page with no-generative-AI metadata:
+https://kenney-assets.itch.io/tiny-dungeon
+
+Included license copy:
+assets/sprites/KENNEY_TINY_DUNGEON_LICENSE.txt
+
+Source tile copies:
+assets/sprites/source_tiles/kenney_tiny_dungeon_warrior.png
+assets/sprites/source_tiles/kenney_tiny_dungeon_thief.png
+assets/sprites/source_tiles/kenney_tiny_dungeon_priestess.png
+assets/sprites/source_tiles/kenney_tiny_dungeon_skeleton.png
+assets/sprites/source_tiles/kenney_tiny_dungeon_gremlin.png
+
+Ogre source:
+OpenGameArt - Orc [Static] [64x64]
+Creator: LordNeo
+License: Creative Commons Zero (CC0)
+Source: https://opengameart.org/content/orc-static-64x64
+Source tile copy:
+assets/sprites/source_tiles/opengameart_lordneo_orc_static_ogre.png
+
+Runtime sheet:
+assets/sprites/combat_sprites.png
+
+Inspection sheet:
+assets/sprites/combat_sprites_chroma.png
+
+Credit text, if desired:
+Sprites derived from Tiny Dungeon by Kenney and Orc [Static] by LordNeo, CC0.
+
+Note:
+The Priestess row uses a clearly feminine Kenney Tiny Dungeon character tile.
+The Ogre row uses LordNeo's larger axe-and-shield brute so it reads as an ogre.
