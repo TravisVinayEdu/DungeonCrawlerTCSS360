@@ -1,0 +1,12 @@
+OpenGameArt asset: Orc [Static] [64x64]
+Creator: LordNeo
+Published: June 4, 2012
+Source: https://opengameart.org/content/orc-static-64x64
+Downloaded file: orc.png
+
+License:
+Creative Commons Zero (CC0)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The source page lists this asset under CC0. Attribution is not required, but
+the project credits the creator/source in README.md and SPRITE_SOURCES.txt.

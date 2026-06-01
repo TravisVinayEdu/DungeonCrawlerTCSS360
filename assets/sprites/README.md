@@ -1,8 +1,17 @@
 # Combat Sprites
 
-`combat_sprites.png` is the runtime sprite sheet used by the Swing combat screen. It is a transparent PNG generated for this project from a chroma-key source.
+`combat_sprites.png` is the runtime sprite sheet used by the Swing combat
+screen. It keeps the original 6-row by 4-column contract expected by
+`dungeoncrawler.view.CombatSpriteSheet`.
 
-`combat_sprites_chroma.png` is the original generated source image with the flat key background preserved for future cleanup or regeneration work.
+`combat_sprites_chroma.png` is the same replacement sheet on a flat chroma-key
+background for inspection or future cleanup work.
+
+These sprites are not AI-generated. Most rows are deterministic derivatives of
+Kenney Tiny Dungeon source sprites. The Ogre row uses LordNeo's OpenGameArt
+`Orc [Static] [64x64]` sprite because it reads as a bulky ogre/brute much more
+clearly than the Tiny Dungeon creature tile. All listed sources are released
+under Creative Commons Zero (CC0).
 
 ## Sheet Layout
 
@@ -24,14 +33,59 @@ Columns:
 3. Hit
 4. Defeated
 
-The loader in `dungeoncrawler.view.CombatSpriteSheet` slices the sheet by this contract. If the sheet is replaced, keep the same row and column order.
+The loader slices the sheet by this contract. If the sheet is replaced, keep the
+same row and column order.
 
-Monster sprites are mirrored by `dungeoncrawler.view.CombatSpritePanel` at render time so every monster faces the hero in combat. Replacement sheets can keep the same facing convention or use neutral source orientation; the battle view is responsible for final direction.
+Monster sprites are mirrored by `dungeoncrawler.view.CombatSpritePanel` at
+render time so every monster faces the hero in combat.
 
-## Generation Prompt
+## Source Credits
 
-Original built-in image generation prompt summary:
+Primary source pack: Kenney Tiny Dungeon
 
-```text
-Create an original polished 32-bit pixel-art fantasy combat sprite sheet for a Java Swing dungeon crawler. Use exactly 6 rows and 4 columns with equal-size cells, no text, no labels, no grid lines, and no scenery. Rows are Warrior, Thief, Priestess, Skeleton, Ogre, Gremlin. Columns are idle, attack, hit/recoil, defeated. Heroes face right and monsters face left. Generate on a flat solid chroma-key background for transparency cleanup.
-```
+Creator: Kenney
+
+License: Creative Commons Zero (CC0)
+
+Official source: https://kenney.nl/assets/tiny-dungeon
+
+OpenGameArt release used for download:
+https://opengameart.org/content/tiny-dungeon
+
+Itch page with no-generative-AI metadata:
+https://kenney-assets.itch.io/tiny-dungeon
+
+Credit text, if desired:
+`Sprites derived from Tiny Dungeon by Kenney and Orc [Static] by LordNeo, CC0.`
+
+Additional Ogre source:
+
+Asset: Orc [Static] [64x64]
+
+Creator: LordNeo
+
+License: Creative Commons Zero (CC0)
+
+Source: https://opengameart.org/content/orc-static-64x64
+
+## Source Tile Mapping
+
+The original 16x16 source tiles are preserved in `source_tiles`.
+
+| Game character | Source tile copy |
+| --- | --- |
+| Warrior | `source_tiles/kenney_tiny_dungeon_warrior.png` |
+| Thief | `source_tiles/kenney_tiny_dungeon_thief.png` |
+| Priestess | `source_tiles/kenney_tiny_dungeon_priestess.png` |
+| Skeleton | `source_tiles/kenney_tiny_dungeon_skeleton.png` |
+| Ogre | `source_tiles/opengameart_lordneo_orc_static_ogre.png` |
+| Gremlin | `source_tiles/kenney_tiny_dungeon_gremlin.png` |
+
+The attack, hit, and defeated columns are simple programmatic transforms of
+those CC0 source tiles: movement offset, non-AI tint/recoil, and rotation.
+
+The Priestess source tile uses a clearly feminine Kenney character sprite from
+the same Tiny Dungeon pack so the battle UI reads closer to the class name.
+
+The Ogre source uses a larger axe-and-shield brute sprite from OpenGameArt so it
+does not resemble the crab-like Tiny Dungeon creature tile.

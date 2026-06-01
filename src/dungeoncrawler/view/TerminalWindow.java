@@ -19,6 +19,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -82,6 +83,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myEastButton;
     private JButton mySouthButton;
     private JButton myWestButton;
+    private JButton myVisionButton;
     private JButton mySaveButton;
     private JButton myNewGameButton;
     private JTextArea myBattleHeroDisplay;
@@ -91,7 +93,6 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myBattleAttackButton;
     private JButton myBattleSpecialButton;
     private JButton myBattleHealButton;
-    private JButton myBattleVisionButton;
     private JButton myBattleRunButton;
     private JButton myBattleNewGameButton;
 
@@ -774,20 +775,23 @@ public class TerminalWindow extends JFrame implements Appendable {
         myStatusLabel.setForeground(FOREGROUND);
         setScalableFont(myStatusLabel, Font.PLAIN, 15);
 
-        JPanel controls = new JPanel(new GridLayout(1, 6, 10, 0));
+        JPanel controls = new JPanel(new GridLayout(1, 7, 10, 0));
         controls.setBackground(BACKGROUND);
         myNorthButton = buildMoveButton("[W] North", Direction.NORTH);
         myEastButton = buildMoveButton("[D] East", Direction.EAST);
         mySouthButton = buildMoveButton("[S] South", Direction.SOUTH);
         myWestButton = buildMoveButton("[A] West", Direction.WEST);
+        myVisionButton = buildMenuButton("Vision Potion");
         mySaveButton = buildMenuButton("Save");
         myNewGameButton = buildMenuButton("New Game");
+        myVisionButton.addActionListener(event -> useVisionPotion());
         mySaveButton.addActionListener(event -> saveCurrentGame());
         myNewGameButton.addActionListener(event -> showCharacterCreation());
         controls.add(myNorthButton);
         controls.add(myEastButton);
         controls.add(mySouthButton);
         controls.add(myWestButton);
+        controls.add(myVisionButton);
         controls.add(mySaveButton);
         controls.add(myNewGameButton);
 
@@ -813,6 +817,14 @@ public class TerminalWindow extends JFrame implements Appendable {
         } catch (SQLException | IOException exception) {
             setStatus("Unable to save game: " + exception.getMessage());
         }
+    }
+
+    private void useVisionPotion() {
+        if (mySession == null) {
+            return;
+        }
+        setStatus(mySession.useVisionPotion());
+        updateGameView();
     }
 
     private void bindMovementKeys(final JPanel thePanel) {
@@ -1014,13 +1026,12 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private JPanel buildBattleActionsPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 6, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 5, 10, 0));
         panel.setBackground(BACKGROUND);
 
         myBattleAttackButton = buildButton("Attack");
         myBattleSpecialButton = buildButton("Special Skill");
         myBattleHealButton = buildButton("Healing Potion");
-        myBattleVisionButton = buildButton("Vision Potion");
         myBattleRunButton = buildMenuButton("Run");
         myBattleNewGameButton = buildMenuButton("New Game");
 
@@ -1032,15 +1043,12 @@ public class TerminalWindow extends JFrame implements Appendable {
                 event -> handleBattleResult(mySession.specialSkill()));
         myBattleHealButton.addActionListener(
                 event -> handleBattleResult(mySession.useHealingPotion()));
-        myBattleVisionButton.addActionListener(
-                event -> handleBattleResult(mySession.useVisionPotion()));
         myBattleRunButton.addActionListener(event -> leaveBattleScreen());
         myBattleNewGameButton.addActionListener(event -> showCharacterCreation());
 
         panel.add(myBattleAttackButton);
         panel.add(myBattleSpecialButton);
         panel.add(myBattleHealButton);
-        panel.add(myBattleVisionButton);
         panel.add(myBattleRunButton);
         panel.add(myBattleNewGameButton);
         return panel;
@@ -1105,10 +1113,10 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void updateBattleView() {
         if (myBattleHeroDisplay != null) {
-            myBattleHeroDisplay.setText(buildBattleHeroText());
+            setTopPinnedText(myBattleHeroDisplay, buildBattleHeroText());
         }
         if (myBattleMonsterDisplay != null && battle() != null) {
-            myBattleMonsterDisplay.setText(buildBattleMonsterText());
+            setTopPinnedText(myBattleMonsterDisplay, buildBattleMonsterText());
         }
 
         boolean active = mySession != null && mySession.isBattleActive();
@@ -1117,8 +1125,6 @@ public class TerminalWindow extends JFrame implements Appendable {
                 active && battle().canUseSpecialSkill());
         setBattleButtonEnabled(myBattleHealButton,
                 active && battle().canUseHealingPotion());
-        setBattleButtonEnabled(myBattleVisionButton,
-                active && battle().canUseVisionPotion());
         updateBattleActionLabels(active);
         if (myBattleRunButton != null) {
             myBattleRunButton.setText(battleReturnText(active));
@@ -1155,9 +1161,6 @@ public class TerminalWindow extends JFrame implements Appendable {
                 theBattleActive ? battle().getSpecialSkillCooldown() : 0);
         setCooldownBadge(myBattleHealButton,
                 "Healing Potion",
-                theBattleActive ? battle().getPotionCooldown() : 0);
-        setCooldownBadge(myBattleVisionButton,
-                "Vision Potion",
                 theBattleActive ? battle().getPotionCooldown() : 0);
     }
 
@@ -1246,18 +1249,43 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private void updateGameView() {
         Room room = mySession.getCurrentRoom();
-        myMapDisplay.setText(buildMapText());
-        myRoomDisplay.setText(centerRoomText(room.toString()));
-        myHeroDisplay.setText(buildHeroStatsText());
+        setTopPinnedText(myMapDisplay, buildMapText());
+        setTopPinnedText(myRoomDisplay, centerRoomText(room.toString()));
+        setTopPinnedText(myHeroDisplay, buildHeroStatsText());
 
         boolean gameOver = mySession.isGameOver();
         myNorthButton.setEnabled(!gameOver && room.workingDoor(Direction.NORTH));
         myEastButton.setEnabled(!gameOver && room.workingDoor(Direction.EAST));
         mySouthButton.setEnabled(!gameOver && room.workingDoor(Direction.SOUTH));
         myWestButton.setEnabled(!gameOver && room.workingDoor(Direction.WEST));
+        if (myVisionButton != null) {
+            myVisionButton.setText("Vision (" + hero().getVisionPotions() + ")");
+            myVisionButton.setEnabled(!gameOver
+                    && !mySession.isBattleActive()
+                    && hero().getVisionPotions() > 0);
+        }
         if (mySaveButton != null) {
             mySaveButton.setEnabled(!hero().isFainted());
         }
+    }
+
+    private void setTopPinnedText(final JTextArea theTextArea,
+                                  final String theText) {
+        theTextArea.setText(theText);
+        pinTextAreaToTop(theTextArea);
+    }
+
+    private void pinTextAreaToTop(final JTextArea theTextArea) {
+        if (theTextArea.getDocument().getLength() > 0) {
+            theTextArea.setCaretPosition(0);
+        }
+        theTextArea.scrollRectToVisible(new Rectangle(0, 0, 1, 1));
+        SwingUtilities.invokeLater(() -> {
+            if (theTextArea.getDocument().getLength() > 0) {
+                theTextArea.setCaretPosition(0);
+            }
+            theTextArea.scrollRectToVisible(new Rectangle(0, 0, 1, 1));
+        });
     }
 
     private void setStatus(final String theMessage) {

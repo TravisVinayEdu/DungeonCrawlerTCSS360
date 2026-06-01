@@ -389,6 +389,26 @@ public class Dungeon implements Serializable {
     }
 
     /**
+     * Reveals rooms around the hero.
+     *
+     * @param theRadius number of rooms outward from the hero to reveal
+     * @return number of rooms newly revealed
+     */
+    public int revealAroundHero(final int theRadius) {
+        int revealed = 0;
+        int radius = Math.max(0, theRadius);
+        for (int row = heroRow - radius; row <= heroRow + radius; row++) {
+            for (int col = heroCol - radius; col <= heroCol + radius; col++) {
+                if (inBounds(row, col) && discoveredMaze[row][col] == null) {
+                    discoveredMaze[row][col] = maze[row][col];
+                    revealed++;
+                }
+            }
+        }
+        return revealed;
+    }
+
+    /**
      * Returns true if the specified coordinates are in the maze.
      * @param theRow 1-based row number
      * @param theCol 1-based column number

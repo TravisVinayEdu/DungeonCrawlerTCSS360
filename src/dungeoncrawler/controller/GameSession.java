@@ -111,8 +111,24 @@ public class GameSession implements Serializable {
         return handleBattleResult(myBattle.useHealingPotion());
     }
 
-    public Battle.BattleResult useVisionPotion() {
-        return handleBattleResult(myBattle.useVisionPotion());
+    public String useVisionPotion() {
+        if (myHero.isFainted()) {
+            return "You have fallen.";
+        }
+        if (isBattleActive()) {
+            return "Vision potions can only be used while exploring.";
+        }
+        if (myHero.getVisionPotions() <= 0) {
+            return "No vision potions remain.";
+        }
+
+        myHero.usePotion(new VisionPotion());
+        int revealed = myDungeon.revealAroundHero(VisionPotion.VISION_RADIUS);
+        if (revealed == 0) {
+            return "Used a vision potion. No new rooms were revealed.";
+        }
+        return "Used a vision potion and revealed " + revealed
+                + " nearby room" + plural(revealed) + ".";
     }
 
     public Battle.BattleResult runFromBattle() {
@@ -187,6 +203,10 @@ public class GameSession implements Serializable {
     private String formatPillar(final Pillar thePillar) {
         String name = thePillar.name().toLowerCase().replace('_', ' ');
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    private String plural(final int theCount) {
+        return theCount == 1 ? "" : "s";
     }
 
     public static class MoveResult {
