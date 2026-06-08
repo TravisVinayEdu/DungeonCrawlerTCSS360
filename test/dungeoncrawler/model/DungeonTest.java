@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import dungeoncrawler.model.characters.Ogre;
 import dungeoncrawler.model.characters.Skeleton;
 import dungeoncrawler.persistence.MonsterDatabase;
 import java.util.List;
@@ -22,7 +23,7 @@ import org.mockito.Mockito;
  * <p>Maze generation is random, so movement and vision are tested through the
  * "load a saved dungeon" constructor with a hand-built {@code Room} grid whose
  * doors are known. A single structural test exercises the generating
- * constructor with a mocked {@link MonsterDatabase} to confirm the fixed
+ * constructor with a mocked {@link MonsterDatabase} to confirm the generated
  * invariants (dimensions, entrance/exit placement, hero start).</p>
  */
 @DisplayName("Dungeon")
@@ -173,18 +174,38 @@ class DungeonTest {
             when(db.getAllMonsterNames()).thenReturn(List.of("Skeleton"));
             when(db.getMonsterByName("Skeleton"))
                     .thenAnswer(invocation -> new Skeleton());
+            when(db.getMonsterByName("Ogre"))
+                    .thenAnswer(invocation -> new Ogre());
 
             final Dungeon dungeon = new Dungeon(6, 6, db);
+            final int[] entranceCount = {0};
+            final int[] exitCount = {0};
+            final Room[] entrance = {null};
+            final Room[] exit = {null};
+            for (int row = 0; row < dungeon.getHeight(); row++) {
+                for (int col = 0; col < dungeon.getWidth(); col++) {
+                    final Room room = dungeon.getRoom(row, col);
+                    if (room.isEntrance()) {
+                        entranceCount[0]++;
+                        entrance[0] = room;
+                    }
+                    if (room.isExit()) {
+                        exitCount[0]++;
+                        exit[0] = room;
+                    }
+                }
+            }
 
             assertAll(
                     () -> assertEquals(6, dungeon.getWidth()),
                     () -> assertEquals(6, dungeon.getHeight()),
-                    () -> assertTrue(dungeon.getRoom(0, 0).isEntrance(), "top-left is the entrance"),
-                    () -> assertTrue(dungeon.getRoom(5, 5).isExit(), "bottom-right is the exit"),
-                    () -> assertEquals(0, dungeon.getHeroRow()),
-                    () -> assertEquals(0, dungeon.getHeroCol()),
-                    () -> assertSame(dungeon.getRoom(0, 0), dungeon.getCurrentRoom()),
-                    () -> assertTrue(dungeon.isDiscovered(0, 0), "the start room is discovered"));
+                    () -> assertEquals(1, entranceCount[0], "one entrance"),
+                    () -> assertEquals(1, exitCount[0], "one exit"),
+                    () -> assertFalse(entrance[0].isExit(), "entrance and exit are distinct"),
+                    () -> assertSame(entrance[0], dungeon.getCurrentRoom()),
+                    () -> assertSame(exit[0], dungeon.getRoom(exit[0].getRow(), exit[0].getCol())),
+                    () -> assertTrue(dungeon.isDiscovered(dungeon.getHeroRow(),
+                            dungeon.getHeroCol()), "the start room is discovered"));
         }
     }
 }

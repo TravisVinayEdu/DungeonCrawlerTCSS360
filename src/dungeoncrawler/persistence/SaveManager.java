@@ -59,6 +59,14 @@ public class SaveManager extends DatabaseManager {
                 pillar             TEXT,
                 monster_type       TEXT,
                 monster_hp         INTEGER,
+                monster_max_hp     INTEGER DEFAULT 0,
+                monster_min_dmg    INTEGER DEFAULT 0,
+                monster_max_dmg    INTEGER DEFAULT 0,
+                monster_speed      INTEGER DEFAULT 0,
+                monster_hit_chance REAL DEFAULT 0,
+                monster_heal_chance REAL DEFAULT 0,
+                monster_min_heal   INTEGER DEFAULT 0,
+                monster_max_heal   INTEGER DEFAULT 0,
                 discovered         INTEGER DEFAULT 0,
                 door_north         INTEGER DEFAULT 0,
                 door_east          INTEGER DEFAULT 0,
@@ -70,6 +78,14 @@ public class SaveManager extends DatabaseManager {
 
         conn.createStatement().execute(createSaveFile);
         conn.createStatement().execute(createSavedRoom);
+        ensureSavedRoomColumn("monster_max_hp", "INTEGER DEFAULT 0");
+        ensureSavedRoomColumn("monster_min_dmg", "INTEGER DEFAULT 0");
+        ensureSavedRoomColumn("monster_max_dmg", "INTEGER DEFAULT 0");
+        ensureSavedRoomColumn("monster_speed", "INTEGER DEFAULT 0");
+        ensureSavedRoomColumn("monster_hit_chance", "REAL DEFAULT 0");
+        ensureSavedRoomColumn("monster_heal_chance", "REAL DEFAULT 0");
+        ensureSavedRoomColumn("monster_min_heal", "INTEGER DEFAULT 0");
+        ensureSavedRoomColumn("monster_max_heal", "INTEGER DEFAULT 0");
         conn.commit();
     }
 
@@ -109,9 +125,12 @@ public class SaveManager extends DatabaseManager {
             INSERT INTO saved_room
               (save_id, room_row, room_col, is_entrance, is_exit,
                has_healing_potion, has_vision_potion, has_pit,
-               pillar, monster_type, monster_hp,
+               pillar, monster_type, monster_hp, monster_max_hp,
+               monster_min_dmg, monster_max_dmg, monster_speed,
+               monster_hit_chance, monster_heal_chance,
+               monster_min_heal, monster_max_heal,
                discovered, door_north, door_east, door_south, door_west)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """;
 
         PreparedStatement roomStmt = conn.prepareStatement(roomSql);
@@ -131,11 +150,19 @@ public class SaveManager extends DatabaseManager {
                 roomStmt.setString(9, room.getPillar() != null ? room.getPillar().name() : null);
                 roomStmt.setString(10, m != null ? m.getClass().getSimpleName() : null);
                 roomStmt.setInt(11, m != null ? m.getHitPoints() : 0);
-                roomStmt.setInt(12, dungeon.isDiscovered(row, col) ? 1 : 0);
-                roomStmt.setInt(13, room.workingDoor(Direction.NORTH) ? 1 : 0);
-                roomStmt.setInt(14, room.workingDoor(Direction.EAST) ? 1 : 0);
-                roomStmt.setInt(15, room.workingDoor(Direction.SOUTH) ? 1 : 0);
-                roomStmt.setInt(16, room.workingDoor(Direction.WEST) ? 1 : 0);
+                roomStmt.setInt(12, m != null ? m.getMaxHitPoints() : 0);
+                roomStmt.setInt(13, m != null ? m.getMinDamage() : 0);
+                roomStmt.setInt(14, m != null ? m.getMaxDamage() : 0);
+                roomStmt.setInt(15, m != null ? m.getAttackSpeed() : 0);
+                roomStmt.setDouble(16, m != null ? m.getHitChance() : 0.0);
+                roomStmt.setDouble(17, m != null ? m.getChanceToHeal() : 0.0);
+                roomStmt.setInt(18, m != null ? m.getMinHeal() : 0);
+                roomStmt.setInt(19, m != null ? m.getMaxHeal() : 0);
+                roomStmt.setInt(20, dungeon.isDiscovered(row, col) ? 1 : 0);
+                roomStmt.setInt(21, room.workingDoor(Direction.NORTH) ? 1 : 0);
+                roomStmt.setInt(22, room.workingDoor(Direction.EAST) ? 1 : 0);
+                roomStmt.setInt(23, room.workingDoor(Direction.SOUTH) ? 1 : 0);
+                roomStmt.setInt(24, room.workingDoor(Direction.WEST) ? 1 : 0);
                 roomStmt.addBatch();
             }
         }
@@ -196,13 +223,18 @@ public class SaveManager extends DatabaseManager {
 
             String monsterType = rs.getString("monster_type");
             if (monsterType != null) {
-                Monster m = createMonster(monsterType);
+                Monster m = createMonster(monsterType,
+                        rs.getInt("monster_max_hp"),
+                        rs.getInt("monster_min_dmg"),
+                        rs.getInt("monster_max_dmg"),
+                        rs.getInt("monster_speed"),
+                        rs.getDouble("monster_hit_chance"),
+                        rs.getDouble("monster_heal_chance"),
+                        rs.getInt("monster_min_heal"),
+                        rs.getInt("monster_max_heal"));
                 m.setMyHitPoints(rs.getInt("monster_hp"));
                 room.setMonstersManual(m);
             }
-
-            // Note: healing/vision potions in rooms need setHealingPotion/setVisionPotion
-            // added to Room — see note below
 
             discovered[row][col] = rs.getInt("discovered") == 1;
             maze[row][col] = room;
@@ -282,5 +314,50 @@ public class SaveManager extends DatabaseManager {
             case "Ogre":     return new Ogre();
             default: throw new IllegalArgumentException("Unknown monster type: " + type);
         }
+    }
+
+    private Monster createMonster(final String type,
+                                  final int maxHp,
+                                  final int minDmg,
+                                  final int maxDmg,
+                                  final int attackSpeed,
+                                  final double hitChance,
+                                  final double healChance,
+                                  final int minHeal,
+                                  final int maxHeal) {
+        if (maxHp <= 0 || attackSpeed <= 0 || maxDmg < minDmg || maxHeal < minHeal) {
+            return createMonster(type);
+        }
+        switch (type) {
+            case "Skeleton":
+                return new Skeleton(maxHp, minDmg, maxDmg, attackSpeed,
+                        hitChance, healChance, minHeal, maxHeal);
+            case "Gremlin":
+                return new Gremlin(maxHp, minDmg, maxDmg, attackSpeed,
+                        hitChance, healChance, minHeal, maxHeal);
+            case "Ogre":
+                return new Ogre(maxHp, minDmg, maxDmg, attackSpeed,
+                        hitChance, healChance, minHeal, maxHeal);
+            default:
+                throw new IllegalArgumentException("Unknown monster type: " + type);
+        }
+    }
+
+    private void ensureSavedRoomColumn(final String theName,
+                                       final String theDefinition) throws SQLException {
+        if (!savedRoomHasColumn(theName)) {
+            conn.createStatement().execute("ALTER TABLE saved_room ADD COLUMN "
+                    + theName + " " + theDefinition);
+        }
+    }
+
+    private boolean savedRoomHasColumn(final String theName) throws SQLException {
+        ResultSet rs = conn.createStatement().executeQuery("PRAGMA table_info(saved_room)");
+        while (rs.next()) {
+            if (theName.equals(rs.getString("name"))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

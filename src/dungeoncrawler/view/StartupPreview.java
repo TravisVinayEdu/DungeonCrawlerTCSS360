@@ -6,25 +6,25 @@ package dungeoncrawler.view;
 final class StartupPreview {
     private static final String[] MAP_PREVIEW = {
             "+---+---+---+---+---+---+---+",
-            "| S     | H     |       | M |",
+            "| i     | H     |       | M |",
             "+   +---+   +   +---+   +   +",
-            "|   | A     |       | L     |",
+            "|   | A     |       | X     |",
             "+   +   +---+---+   +---+   +",
             "|       | @     | V     |   |",
             "+---+   +   +---+---+   +   +",
-            "| I     |       | P     | X |",
+            "| I     |       | P     | O |",
             "+---+---+---+---+---+---+---+"
     };
     private static final String[] SYMBOL_TABLE = {
             "+--------+---------------+",
             "| Symbol | Meaning       |",
             "+--------+---------------+",
-            "| S      | Start         |",
-            "| X      | Exit          |",
+            "| i      | Entrance      |",
+            "| O      | Exit          |",
             "| @      | Hero          |",
             "| H      | Healing       |",
             "| V      | Vision        |",
-            "| L      | Lava          |",
+            "| X      | Pit           |",
             "| M      | Monster       |",
             "| A/E/I/P| Pillars       |",
             "+--------+---------------+"

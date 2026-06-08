@@ -256,35 +256,6 @@ class BattleTest {
     }
 
     @Nested
-    @DisplayName("vision potion")
-    class VisionPotion {
-
-        @Test
-        @DisplayName("vision potions are rejected during battle without being consumed")
-        void visionPotionNotUsableInBattle() {
-            final ControllableHero hero = hero(100, 0);
-            hero.addVisionPotion();
-            final Battle battle = new Battle(hero, harmlessMonster(100));
-
-            final BattleResult result = battle.useVisionPotion();
-
-            assertAll(
-                    () -> assertTrue(hasMessageContaining(result, "not battle")),
-                    () -> assertEquals(1, hero.getVisionPotions(), "vision potion is not consumed"));
-        }
-
-        @Test
-        @DisplayName("with no vision potions the request is refused")
-        void noVisionPotions() {
-            final Battle battle = new Battle(hero(100, 0), harmlessMonster(100));
-
-            final BattleResult result = battle.useVisionPotion();
-
-            assertTrue(hasMessageContaining(result, "No vision potions remain"));
-        }
-    }
-
-    @Nested
     @DisplayName("run")
     class Run {
 

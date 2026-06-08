@@ -29,8 +29,11 @@ public class Room implements Serializable {
     /** Chance of a feature being present in a room. */
     private static final int FEATURE_CHANCE = 10;
 
-    /** Damage taken when falling into a pit. */
-    private static final int PIT_DAMAGE = 20;
+    /** Minimum damage taken when falling into a pit. */
+    private static final int MIN_PIT_DAMAGE = 1;
+
+    /** Maximum damage taken when falling into a pit. */
+    private static final int MAX_PIT_DAMAGE = 20;
 
     /** Directions of doors with integers corresponding to their index in the doors array. */
     private static final int NORTH_INDEX = 0;
@@ -58,8 +61,8 @@ public class Room implements Serializable {
 
     /**
      * Constructor for the Room class.
-     * @param theRow 1-based row number
-     * @param theCol 1-based column number
+     * @param theRow zero-based row number
+     * @param theCol zero-based column number
      */
     public Room(int theRow, int theCol) {
         myRow = theRow;
@@ -147,7 +150,11 @@ public class Room implements Serializable {
      * @return the amount of damage taken
      */
     public int fallInPit() {
-        return pit ? PIT_DAMAGE : 0;
+        if (!pit) {
+            return 0;
+        }
+        return RANDOM.nextInt(MAX_PIT_DAMAGE - MIN_PIT_DAMAGE + 1)
+                + MIN_PIT_DAMAGE;
     }
 
     /**
@@ -381,10 +388,10 @@ public class Room implements Serializable {
      */
     private String centerContents() {
         if (isEntrance) {
-            return " E ";
+            return " i ";
         }
         if (isExit) {
-            return " X ";
+            return " O ";
         }
 
         String contents = "";
@@ -392,7 +399,7 @@ public class Room implements Serializable {
             contents += pillarSymbol();
         }
         if (pit) {
-            contents += "L";
+            contents += "X";
         }
         if (healingPotion) {
             contents += "H";

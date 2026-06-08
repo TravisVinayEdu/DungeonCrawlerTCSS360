@@ -14,6 +14,7 @@ import dungeoncrawler.view.TerminalWindow;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.SwingUtilities;
@@ -91,11 +92,14 @@ public class DungeonCrawler {
     }
 
     public List<String> listSaves() throws SQLException, IOException {
+        List<String> saves = new ArrayList<>();
         try (SaveManager saveManager = new SaveManager()) {
-            return saveManager.listSaves();
+            saves.addAll(saveManager.listSaves());
         } catch (SQLException exception) {
-            return new FileSaveManager().listSaves();
+            // SQLite saves are optional; still include serialized fallback saves.
         }
+        saves.addAll(new FileSaveManager().listSaves());
+        return saves;
     }
 
     private void handleRoom(Appendable terminal, Room r) {

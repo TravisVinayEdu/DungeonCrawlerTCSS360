@@ -15,6 +15,7 @@ import dungeoncrawler.model.characters.Thief;
 import dungeoncrawler.model.characters.Warrior;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -49,6 +50,13 @@ import javax.swing.SwingUtilities;
 import javax.swing.ActionMap;
 import javax.swing.AbstractAction;
 
+/**
+ * Main Swing view for the dungeon crawler.
+ *
+ * <p>Hidden test option: press Ctrl+Shift+D from the dungeon screen, or type
+ * {@code debug dungeon} at the terminal after a session exists, to display the
+ * full dungeon map.</p>
+ */
 public class TerminalWindow extends JFrame implements Appendable {
     private static final Color BACKGROUND = new Color(43, 43, 43);
     private static final Color EDITOR_BACKGROUND = new Color(30, 31, 34);
@@ -66,6 +74,8 @@ public class TerminalWindow extends JFrame implements Appendable {
     private static final double[] TEXT_SIZE_SCALES = {
         0.85, 1.0, 1.20, 1.40
     };
+    private static final String EXPLORING_CONTROLS = "exploringControls";
+    private static final String WIN_CONTROLS = "winControls";
 
     private final DungeonCrawler myGame;
     private final WindowScaler myWindowScaler;
@@ -78,7 +88,10 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JTextArea myMapDisplay;
     private JTextArea myRoomDisplay;
     private JTextArea myHeroDisplay;
+    private JLabel myOutcomeLabel;
     private JLabel myStatusLabel;
+    private CardLayout myMovementControlsLayout;
+    private JPanel myMovementControlsPanel;
     private JButton myNorthButton;
     private JButton myEastButton;
     private JButton mySouthButton;
@@ -367,6 +380,11 @@ public class TerminalWindow extends JFrame implements Appendable {
             case "3":
             case "help":
                 println("Commands: 1/start/new, 2/load, 3/help, 4/clear, 5/exit");
+                break;
+            case "debug dungeon":
+            case "show dungeon":
+            case "full dungeon":
+                showDebugDungeon();
                 break;
             case "4":
             case "clear":
@@ -676,6 +694,7 @@ public class TerminalWindow extends JFrame implements Appendable {
         panel.add(buildSidePanel(), BorderLayout.WEST);
         panel.add(buildMovementPanel(), BorderLayout.SOUTH);
         bindMovementKeys(panel);
+        bindDebugDungeonKey(panel);
 
         setTitle("Dungeon Crawler");
         setContentPane(panel);
@@ -770,10 +789,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
         panel.setBackground(BACKGROUND);
 
+        myOutcomeLabel = new JLabel(" ");
+        myOutcomeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        myOutcomeLabel.setForeground(VALID_MOVE_BORDER);
+        setScalableFont(myOutcomeLabel, Font.BOLD, 28);
+
         myStatusLabel = new JLabel(" ");
         myStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         myStatusLabel.setForeground(FOREGROUND);
         setScalableFont(myStatusLabel, Font.PLAIN, 15);
+
+        JPanel messagePanel = new JPanel(new GridLayout(2, 1, 0, 3));
+        messagePanel.setBackground(BACKGROUND);
+        messagePanel.add(myOutcomeLabel);
+        messagePanel.add(myStatusLabel);
 
         JPanel controls = new JPanel(new GridLayout(1, 7, 10, 0));
         controls.setBackground(BACKGROUND);
@@ -795,8 +824,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         controls.add(mySaveButton);
         controls.add(myNewGameButton);
 
-        panel.add(myStatusLabel, BorderLayout.NORTH);
-        panel.add(controls, BorderLayout.CENTER);
+        JButton winNewGameButton = buildMenuButton("New Game");
+        winNewGameButton.addActionListener(event -> showCharacterCreation());
+        JPanel winControls = new JPanel(new GridLayout(1, 1));
+        winControls.setBackground(BACKGROUND);
+        winControls.add(winNewGameButton);
+
+        myMovementControlsLayout = new CardLayout();
+        myMovementControlsPanel = new JPanel(myMovementControlsLayout);
+        myMovementControlsPanel.setBackground(BACKGROUND);
+        myMovementControlsPanel.add(controls, EXPLORING_CONTROLS);
+        myMovementControlsPanel.add(winControls, WIN_CONTROLS);
+
+        panel.add(messagePanel, BorderLayout.NORTH);
+        panel.add(myMovementControlsPanel, BorderLayout.CENTER);
         return panel;
     }
 
@@ -841,6 +882,20 @@ public class TerminalWindow extends JFrame implements Appendable {
         bindMovementKey(inputMap, actionMap, "pressed A", Direction.WEST);
     }
 
+    private void bindDebugDungeonKey(final JPanel thePanel) {
+        InputMap inputMap = thePanel.getInputMap(JPanel.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = thePanel.getActionMap();
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+                "debugDungeon");
+        actionMap.put("debugDungeon", new AbstractAction() {
+            @Override
+            public void actionPerformed(final ActionEvent theEvent) {
+                showDebugDungeon();
+            }
+        });
+    }
+
     private void bindMovementKey(final InputMap theInputMap,
                                  final ActionMap theActionMap,
                                  final String theKey,
@@ -856,7 +911,7 @@ public class TerminalWindow extends JFrame implements Appendable {
     }
 
     private void moveHero(final Direction theDirection) {
-        if (mySession == null || hero().isFainted()) {
+        if (mySession == null || hero().isFainted() || mySession.hasWon()) {
             return;
         }
 
@@ -1253,7 +1308,23 @@ public class TerminalWindow extends JFrame implements Appendable {
         setTopPinnedText(myRoomDisplay, centerRoomText(room.toString()));
         setTopPinnedText(myHeroDisplay, buildHeroStatsText());
 
+        boolean won = mySession.hasWon();
         boolean gameOver = mySession.isGameOver();
+        if (myOutcomeLabel != null) {
+            if (won) {
+                myOutcomeLabel.setForeground(VALID_MOVE_BORDER);
+                myOutcomeLabel.setText("You Win!");
+            } else if (hero().isFainted()) {
+                myOutcomeLabel.setForeground(INVALID_MOVE_BORDER);
+                myOutcomeLabel.setText("Game Over");
+            } else {
+                myOutcomeLabel.setText(" ");
+            }
+        }
+        if (myMovementControlsLayout != null && myMovementControlsPanel != null) {
+            myMovementControlsLayout.show(myMovementControlsPanel,
+                    won ? WIN_CONTROLS : EXPLORING_CONTROLS);
+        }
         myNorthButton.setEnabled(!gameOver && room.workingDoor(Direction.NORTH));
         myEastButton.setEnabled(!gameOver && room.workingDoor(Direction.EAST));
         mySouthButton.setEnabled(!gameOver && room.workingDoor(Direction.SOUTH));
@@ -1265,7 +1336,7 @@ public class TerminalWindow extends JFrame implements Appendable {
                     && hero().getVisionPotions() > 0);
         }
         if (mySaveButton != null) {
-            mySaveButton.setEnabled(!hero().isFainted());
+            mySaveButton.setEnabled(!gameOver);
         }
     }
 
@@ -1318,6 +1389,43 @@ public class TerminalWindow extends JFrame implements Appendable {
 
     private String buildMapText() {
         return myMapRenderer.render(dungeon());
+    }
+
+    private void showDebugDungeon() {
+        if (mySession == null) {
+            println("No active dungeon to print.");
+            return;
+        }
+
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(BACKGROUND);
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+
+        JLabel title = new JLabel("Full Dungeon Debug");
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setForeground(DOOM_ACCENT);
+        setScalableFont(title, Font.BOLD, 30);
+
+        JTextArea debugDisplay = buildOutputArea();
+        debugDisplay.setLineWrap(false);
+        debugDisplay.setWrapStyleWord(false);
+        setTopPinnedText(debugDisplay, myMapRenderer.renderFull(dungeon()));
+
+        JPanel controls = new JPanel(new GridLayout(1, 2, 10, 0));
+        controls.setBackground(BACKGROUND);
+        JButton backButton = buildMenuButton("Back to Dungeon");
+        JButton terminalButton = buildMenuButton("Main Menu");
+        backButton.addActionListener(event -> showDungeonView());
+        terminalButton.addActionListener(event -> showTerminal());
+        controls.add(backButton);
+        controls.add(terminalButton);
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(wrapTextArea(debugDisplay), BorderLayout.CENTER);
+        panel.add(controls, BorderLayout.SOUTH);
+
+        setContentPane(panel);
+        refreshContent();
     }
 
     private static String percent(final double theChance) {

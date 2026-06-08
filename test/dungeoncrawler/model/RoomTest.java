@@ -94,13 +94,15 @@ class RoomTest {
         }
 
         @Test
-        @DisplayName("a pit deals fixed damage, and none once removed")
+        @DisplayName("a pit deals random 1-20 damage, and none once removed")
         void pitDamage() {
             final Room room = cleanRoom();
             room.setPit();
+            final int damage = room.fallInPit();
             assertAll(
                     () -> assertTrue(room.hasPit()),
-                    () -> assertEquals(20, room.fallInPit()));
+                    () -> assertTrue(damage >= 1 && damage <= 20,
+                            "pit damage should be in the assignment range"));
 
             room.removePit();
             assertAll(
@@ -258,11 +260,11 @@ class RoomTest {
         }
 
         @Test
-        @DisplayName("the entrance room renders the E marker")
+        @DisplayName("the entrance room renders the i marker")
         void entranceMarker() {
             final Room room = cleanRoom();
             room.setEntrance();
-            assertTrue(room.toString().contains(" E "));
+            assertTrue(room.toString().contains(" i "));
         }
     }
 }
