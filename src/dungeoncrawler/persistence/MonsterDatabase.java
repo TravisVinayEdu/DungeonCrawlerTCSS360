@@ -5,12 +5,28 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * SQLite repository for monster statistics.
+ *
+ * <p>The table is seeded with the assignment monster types at startup, and
+ * dungeon generation asks this class for new monster instances.</p>
+ */
 public class MonsterDatabase extends DatabaseManager {
 
+    /**
+     * Opens the monster database and ensures default monsters exist.
+     *
+     * @throws SQLException if SQLite setup fails
+     */
     public MonsterDatabase() throws SQLException {
         super();
     }
 
+    /**
+     * Creates the monster table and seeds default data.
+     *
+     * @throws SQLException if schema setup fails
+     */
     @Override
     protected void initSchema() throws SQLException {
         String createMonster = """
@@ -52,6 +68,12 @@ public class MonsterDatabase extends DatabaseManager {
         conn.commit();
     }
 
+    /**
+     * Returns every monster name stored in the database.
+     *
+     * @return monster names
+     * @throws SQLException if the query fails
+     */
     public List<String> getAllMonsterNames() throws SQLException {
         ResultSet rs = conn.createStatement().executeQuery(
                 "SELECT name FROM monster"
@@ -63,7 +85,14 @@ public class MonsterDatabase extends DatabaseManager {
         return names;
     }
 
-    public Monster getMonsterByName(String name) throws SQLException {
+    /**
+     * Builds a monster instance from a database row selected by name.
+     *
+     * @param name monster type name
+     * @return monster instance with database statistics
+     * @throws SQLException if the monster does not exist or the query fails
+     */
+    public Monster getMonsterByName(final String name) throws SQLException {
         PreparedStatement stmt = conn.prepareStatement(
                 "SELECT * FROM monster WHERE name = ?"
         );
@@ -75,6 +104,12 @@ public class MonsterDatabase extends DatabaseManager {
         return buildMonster(rs);
     }
 
+    /**
+     * Returns instances of all monsters stored in the database.
+     *
+     * @return list of monsters with database statistics
+     * @throws SQLException if the query fails
+     */
     public List<Monster> getAllMonsters() throws SQLException {
         ResultSet rs = conn.createStatement().executeQuery(
                 "SELECT * FROM monster"

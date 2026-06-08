@@ -53,14 +53,18 @@ public class Room implements Serializable {
     private final int myCol;
 
     /**
-     * Basic Constructor. Not currently used.
+     * Creates a room without meaningful grid coordinates.
+     *
+     * <p>This constructor is retained for simple tests and compatibility with
+     * older code. Normal dungeon generation uses {@link #Room(int, int)}.</p>
      */
     public Room() {
         this(-1, -1);
     }
 
     /**
-     * Constructor for the Room class.
+     * Creates a room at the supplied dungeon coordinates.
+     *
      * @param theRow zero-based row number
      * @param theCol zero-based column number
      */
@@ -82,8 +86,9 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room is empty.
-     * @return boolean if the room is empty
+     * Returns true if the room has no special contents or room type.
+     *
+     * @return true if the room is empty
      */
     public boolean isEmpty() {
         return !healingPotion
@@ -108,6 +113,7 @@ public class Room implements Serializable {
 
     /**
      * Sets the monster in the room to a random monster from the database.
+     *
      * @param db the database to pull the monster from
      * @throws SQLException if the database cannot be accessed
      */
@@ -119,6 +125,7 @@ public class Room implements Serializable {
 
     /**
      * Sets the monster in the room to a manually chosen monster.
+     *
      * @param m the monster to set
      */
     public void setMonstersManual(Monster m) {
@@ -126,15 +133,17 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room has an item.
-     * @return boolean if the room has an item
+     * Returns true if the room contains a collectible item or pillar.
+     *
+     * @return true if the room has a collectible item
      */
     public boolean hasItem() {
         return healingPotion || visionPotion || pillar != null;
     }
 
     /**
-     * Removes a potion from the room.
+     * Removes a potion matching the supplied potion type from the room.
+     *
      * @param potion the potion to remove
      */
     public void removePotion(Potion potion) {
@@ -146,8 +155,9 @@ public class Room implements Serializable {
     }
 
     /**
-     * Makes the hero take damage upon falling into a pit.
-     * @return the amount of damage taken
+     * Rolls pit damage if this room contains a pit.
+     *
+     * @return damage from the pit, or zero when no pit is present
      */
     public int fallInPit() {
         if (!pit) {
@@ -158,7 +168,7 @@ public class Room implements Serializable {
     }
 
     /**
-     * Sets the room as an entrance or exit room.
+     * Marks this room as the dungeon entrance and clears all contents.
      */
     public void setEntrance() {
         clearContents();
@@ -167,15 +177,16 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room is an entrance room.
-     * @return boolean if the room is an entrance room
+     * Returns true if this room is the dungeon entrance.
+     *
+     * @return true if this room is the entrance
      */
     public boolean isEntrance() {
         return isEntrance;
     }
 
     /**
-     * Sets the room as an exit room.
+     * Marks this room as the dungeon exit and clears all contents.
      */
     public void setExit() {
         clearContents();
@@ -184,15 +195,17 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room is an exit room.
-     * @return boolean if the room is an exit room
+     * Returns true if this room is the dungeon exit.
+     *
+     * @return true if this room is the exit
      */
     public boolean isExit() {
         return isExit;
     }
 
     /**
-     * Sets the pillar in the room.
+     * Places a pillar in this room unless it is the entrance or exit.
+     *
      * @param p the pillar to set
      */
     public void setPillar(Pillar p) {
@@ -202,16 +215,18 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns the pillar in the room.
-     * @return the pillar in the room
+     * Returns the pillar in this room.
+     *
+     * @return pillar in the room, or null if none
      */
     public Pillar getPillar() {
         return pillar;
     }
 
     /**
-     * Removes the pillar from the room.
-     * @return the pillar that was removed
+     * Removes and returns the pillar from this room.
+     *
+     * @return removed pillar, or null if none
      */
     public Pillar removePillar() {
         Pillar foundPillar = pillar;
@@ -220,31 +235,34 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room has a healing potion.
-     * @return boolean if the room has a healing potion
+     * Returns true if this room contains a healing potion.
+     *
+     * @return true if a healing potion is present
      */
     public boolean hasHealingPotion() {
         return healingPotion;
     }
 
     /**
-     * Returns true if the room has a vision potion.
-     * @return boolean if the room has a vision potion
+     * Returns true if this room contains a vision potion.
+     *
+     * @return true if a vision potion is present
      */
     public boolean hasVisionPotion() {
         return visionPotion;
     }
 
     /**
-     * Returns true if the room has a pit.
-     * @return boolean if the room has a pit
+     * Returns true if this room contains a pit.
+     *
+     * @return true if a pit is present
      */
     public boolean hasPit() {
         return pit;
     }
 
     /**
-     * Sets the pit in the room.
+     * Places a pit in this room unless it is the entrance or exit.
      */
     public void setPit() {
         if (!isEntrance && !isExit) {
@@ -253,30 +271,32 @@ public class Room implements Serializable {
     }
 
     /**
-     * Removes the pit from the room.
+     * Removes any pit from this room.
      */
     public void removePit() {
         pit = false;
     }
 
     /**
-     * Returns the monster in the room.
-     * @return the monster in the room
+     * Returns the monster in this room.
+     *
+     * @return monster in the room, or null if none
      */
     public Monster getMonster() {
         return monster;
     }
 
     /**
-     * Removes the monster from the room.
+     * Removes any monster from this room.
      */
     public void removeMonster() {
         monster = null;
     }
 
     /**
-     * Returns true if the door is open.
-     * @param d in the direction of the door
+     * Returns true if the door in the given direction is open.
+     *
+     * @param d direction of the door
      * @return true if the door is open
      */
     public boolean workingDoor(Direction d) {
@@ -284,8 +304,9 @@ public class Room implements Serializable {
     }
 
     /**
-     * Sets the door to open or closed.
-     * @param d in the direction of the door
+     * Sets the door in the given direction to open or closed.
+     *
+     * @param d direction of the door
      * @param open true if the door should be open, false if closed
      */
     public void setDoor(Direction d, boolean open) {
@@ -293,7 +314,8 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns true if the room is escapable.
+     * Returns true if at least one door is open.
+     *
      * @return true if the room is escapable
      */
     public boolean isEscapable() {
@@ -302,7 +324,8 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns the row number of the room.
+     * Returns the zero-based row number of the room.
+     *
      * @return the row number of the room
      */
     public int getRow() {
@@ -310,7 +333,8 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns the column number of the room.
+     * Returns the zero-based column number of the room.
+     *
      * @return the column number of the room
      */
     public int getCol() {
@@ -318,8 +342,9 @@ public class Room implements Serializable {
     }
 
     /**
-     * Returns a string representation of the room.
-     * @return a string representation of the room
+     * Returns a three-line text drawing of the room.
+     *
+     * @return room drawing with walls, doors, and contents
      */
     @Override
     public String toString() {
@@ -344,7 +369,8 @@ public class Room implements Serializable {
     }
 
     /**
-     * Sets the healing potion in the room.
+     * Sets whether this room contains a healing potion.
+     *
      * @param b true if the potion should be set, false if not
      */
     public void setHealingPotion(boolean b) {
@@ -352,7 +378,8 @@ public class Room implements Serializable {
     }
 
     /**
-     * Sets the vision potion in the room.
+     * Sets whether this room contains a vision potion.
+     *
      * @param b true if the potion should be set, false if not
      */
     public void setVisionPotion(boolean b) {

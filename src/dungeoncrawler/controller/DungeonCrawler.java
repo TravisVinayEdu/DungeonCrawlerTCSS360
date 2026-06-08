@@ -19,8 +19,26 @@ import java.util.List;
 
 import javax.swing.SwingUtilities;
 
+/**
+ * Application controller and entry point for Dungeon Crawler.
+ *
+ * <p>This class creates heroes, dungeons, sessions, and save/load managers.
+ * The Swing view calls these methods instead of constructing game objects
+ * directly.</p>
+ */
 public class DungeonCrawler {
-    public static void main(String[] args) {
+    /**
+     * Creates an application controller.
+     */
+    public DungeonCrawler() {
+    }
+
+    /**
+     * Starts the Swing application.
+     *
+     * @param args command-line arguments, currently unused
+     */
+    public static void main(final String[] args) {
         SwingUtilities.invokeLater(() -> new TerminalWindow(new DungeonCrawler()).open());
     }
 
@@ -48,6 +66,14 @@ public class DungeonCrawler {
         handleRoom(terminal, dungeon.getCurrentRoom());
     }
 
+    /**
+     * Creates a concrete hero from a class name chosen in the UI.
+     *
+     * @param theClassName one of Warrior, Thief, or Priestess
+     * @param theName player-entered hero name
+     * @return newly created hero
+     * @throws IllegalArgumentException if the class name is unknown
+     */
     public Hero createHero(final String theClassName, final String theName) {
         switch (theClassName) {
             case "Warrior":
@@ -61,15 +87,39 @@ public class DungeonCrawler {
         }
     }
 
+    /**
+     * Creates a new generated dungeon using SQLite-backed monster data.
+     *
+     * @return generated dungeon
+     * @throws SQLException if the monster database cannot be initialized
+     */
     public Dungeon createDungeon() throws SQLException {
         MonsterDatabase db = new MonsterDatabase();
         return new Dungeon(10, 10, db);
     }
 
+    /**
+     * Creates a new playable session for the supplied hero.
+     *
+     * @param theHero hero chosen by the player
+     * @return game session containing a fresh dungeon
+     * @throws SQLException if dungeon or monster-data creation fails
+     */
     public GameSession createSession(final Hero theHero) throws SQLException {
         return new GameSession(theHero, createDungeon());
     }
 
+    /**
+     * Saves a game session.
+     *
+     * <p>SQLite is attempted first. If it is unavailable, a serialized file
+     * fallback is used.</p>
+     *
+     * @param theSession session to save
+     * @return save identifier
+     * @throws SQLException if SQLite save setup fails before fallback can run
+     * @throws IOException if fallback serialization fails
+     */
     public long saveGame(final GameSession theSession) throws SQLException, IOException {
         try (SaveManager saveManager = new SaveManager()) {
             return saveManager.saveGame(theSession.getHero(), theSession.getDungeon());
@@ -78,6 +128,14 @@ public class DungeonCrawler {
         }
     }
 
+    /**
+     * Loads a game session by save id.
+     *
+     * @param theSaveId save identifier selected by the player
+     * @return loaded game session
+     * @throws SQLException if SQLite loading fails before fallback can run
+     * @throws IOException if fallback loading fails
+     */
     public GameSession loadGame(final long theSaveId) throws SQLException, IOException {
         if (theSaveId <= Integer.MAX_VALUE) {
             try (SaveManager saveManager = new SaveManager()) {
@@ -91,6 +149,13 @@ public class DungeonCrawler {
         return new FileSaveManager().loadGame(theSaveId);
     }
 
+    /**
+     * Lists available SQLite and serialized fallback saves.
+     *
+     * @return formatted save labels for the load screen
+     * @throws SQLException if SQLite listing fails outside the optional path
+     * @throws IOException if fallback save listing fails
+     */
     public List<String> listSaves() throws SQLException, IOException {
         List<String> saves = new ArrayList<>();
         try (SaveManager saveManager = new SaveManager()) {

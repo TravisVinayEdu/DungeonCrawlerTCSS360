@@ -126,6 +126,11 @@ final class CombatSpritePanel extends JPanel {
         return CombatSpritePose.IDLE;
     }
 
+    /**
+     * Paints the animated combat stage and visible combatants.
+     *
+     * @param theGraphics graphics context supplied by Swing
+     */
     @Override
     protected void paintComponent(final Graphics theGraphics) {
         super.paintComponent(theGraphics);

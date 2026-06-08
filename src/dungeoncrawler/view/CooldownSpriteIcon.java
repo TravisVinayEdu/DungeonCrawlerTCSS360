@@ -41,16 +41,34 @@ final class CooldownSpriteIcon implements Icon {
         myNumber = Math.max(0, Math.min(DIGITS.length - 1, theNumber));
     }
 
+    /**
+     * Returns the fixed badge width.
+     *
+     * @return icon width in pixels
+     */
     @Override
     public int getIconWidth() {
         return SIZE;
     }
 
+    /**
+     * Returns the fixed badge height.
+     *
+     * @return icon height in pixels
+     */
     @Override
     public int getIconHeight() {
         return SIZE;
     }
 
+    /**
+     * Paints the cooldown badge and digit.
+     *
+     * @param theComponent component requesting the icon paint
+     * @param theGraphics graphics context to paint into
+     * @param theX left edge of the icon
+     * @param theY top edge of the icon
+     */
     @Override
     public void paintIcon(final Component theComponent,
                           final Graphics theGraphics,
