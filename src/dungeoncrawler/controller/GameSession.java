@@ -82,6 +82,10 @@ public class GameSession implements Serializable {
         if (myHero.isFainted()) {
             return new MoveResult(false, false, false, "You have fallen.");
         }
+        if (hasWon()) {
+            return new MoveResult(false, false, false,
+                    "You have already escaped with all four pillars.");
+        }
         if (isBattleActive()) {
             return new MoveResult(false, false, false,
                     "You cannot move during battle.");
@@ -184,7 +188,7 @@ public class GameSession implements Serializable {
         int pitDamage = room.fallInPit();
         if (pitDamage > 0) {
             myHero.takeDamage(pitDamage);
-            message += " Stepped in lava for " + pitDamage + " damage.";
+            message += " Fell into a pit for " + pitDamage + " damage.";
         }
         if (room.isExit()) {
             if (myHero.hasAllPillars()) {

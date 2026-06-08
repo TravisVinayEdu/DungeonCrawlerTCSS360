@@ -28,13 +28,14 @@ public class Dungeon implements Serializable {
     private final int myWidth;
     private final int myHeight;
     private Room entrance;
+    private Room exit;
     private int heroRow;
     private int heroCol;
 
     /**
      * Constructor for the Dungeon class.
-     * @param theWidth 1-based width of the dungeon
-     * @param theHeight 1-based height of the dungeon
+     * @param theWidth width of the dungeon
+     * @param theHeight height of the dungeon
      * @param db MonsterDatabase object
      * @throws SQLException if there is a problem connecting to the database
      */
@@ -52,10 +53,10 @@ public class Dungeon implements Serializable {
     /**
      * Constructor for the Dungeon class. Used for loading a saved dungeon.
      * @param maze 2D array of Room objects
-     * @param width 1-based width of the dungeon
-     * @param height 1-based height of the dungeon
-     * @param heroRow 1-based row number of the hero
-     * @param heroCol 1-based column number of the hero
+     * @param width width of the dungeon
+     * @param height height of the dungeon
+     * @param heroRow zero-based row number of the hero
+     * @param heroCol zero-based column number of the hero
      * @param discovered The dungeon's vision grid.
      */
     public Dungeon(Room[][] maze, int width, int height,
@@ -73,7 +74,7 @@ public class Dungeon implements Serializable {
                 }
             }
         }
-        this.entrance = maze[0][0];
+        findSpecialRooms();
     }
 
     /**
@@ -89,24 +90,19 @@ public class Dungeon implements Serializable {
         }
         carveMaze(0, 0, new boolean[myHeight][myWidth]);
 
-        entrance = maze[0][0];
-        entrance.setEntrance();
-        heroRow = entrance.getRow();
-        heroCol = entrance.getCol();
-
-        Room exit = maze[myHeight - 1][myWidth - 1];
-        exit.setExit();
+        placeEntranceAndExit();
 
         removeUnavoidablePits();
         placePillars();
+        placeGuardians(db);
         placeMonsters(db);
         discoverCurrentRoom();
     }
 
     /**
      * Carves the maze recursively.
-     * @param theRow 1-based row number
-     * @param theCol 1-based column number
+     * @param theRow zero-based row number
+     * @param theCol zero-based column number
      * @param theVisited 2D array of booleans indicating whether a room has been visited
      */
     private void carveMaze(final int theRow,
@@ -129,6 +125,88 @@ public class Dungeon implements Serializable {
             maze[nextRow][nextCol].setDoor(opposite(direction), true);
             carveMaze(nextRow, nextCol, theVisited);
         }
+    }
+
+    /**
+     * Places the entrance randomly, then places the exit far away.
+     */
+    private void placeEntranceAndExit() {
+        entrance = maze[RANDOM.nextInt(myHeight)][RANDOM.nextInt(myWidth)];
+        exit = farthestRoomFrom(entrance);
+
+        entrance.setEntrance();
+        if (exit != entrance) {
+            exit.setExit();
+        }
+        heroRow = entrance.getRow();
+        heroCol = entrance.getCol();
+    }
+
+    /**
+     * Locates the special rooms in a loaded dungeon.
+     */
+    private void findSpecialRooms() {
+        for (int row = 0; row < myHeight; row++) {
+            for (int col = 0; col < myWidth; col++) {
+                if (maze[row][col].isEntrance()) {
+                    entrance = maze[row][col];
+                }
+                if (maze[row][col].isExit()) {
+                    exit = maze[row][col];
+                }
+            }
+        }
+        if (entrance == null) {
+            entrance = maze[heroRow][heroCol];
+        }
+        if (exit == null) {
+            exit = maze[myHeight - 1][myWidth - 1];
+        }
+    }
+
+    /**
+     * Finds the room farthest from a starting room by door traversal.
+     * @param theStart starting room
+     * @return farthest reachable room
+     */
+    private Room farthestRoomFrom(final Room theStart) {
+        int[][] distances = new int[myHeight][myWidth];
+        for (int row = 0; row < myHeight; row++) {
+            for (int col = 0; col < myWidth; col++) {
+                distances[row][col] = -1;
+            }
+        }
+
+        Queue<int[]> queue = new LinkedList<>();
+        queue.add(new int[]{theStart.getRow(), theStart.getCol()});
+        distances[theStart.getRow()][theStart.getCol()] = 0;
+        Room farthest = theStart;
+
+        Direction[] directions = {Direction.NORTH, Direction.EAST,
+                Direction.SOUTH, Direction.WEST};
+        while (!queue.isEmpty()) {
+            int[] current = queue.poll();
+            int row = current[0];
+            int col = current[1];
+            if (distances[row][col]
+                    > distances[farthest.getRow()][farthest.getCol()]) {
+                farthest = maze[row][col];
+            }
+            for (Direction direction : directions) {
+                if (!maze[row][col].workingDoor(direction)) {
+                    continue;
+                }
+                int nextRow = row + rowDelta(direction);
+                int nextCol = col + colDelta(direction);
+                if (!inBounds(nextRow, nextCol)
+                        || distances[nextRow][nextCol] >= 0) {
+                    continue;
+                }
+                distances[nextRow][nextCol] = distances[row][col] + 1;
+                queue.add(new int[]{nextRow, nextCol});
+            }
+        }
+        return farthest;
     }
 
     /**
@@ -174,6 +252,83 @@ public class Dungeon implements Serializable {
                 }
             }
         }
+    }
+
+    /**
+     * Places stronger guardians near pillars and the exit.
+     * @param db MonsterDatabase object
+     * @throws SQLException if there is a problem connecting to the database
+     */
+    private void placeGuardians(final MonsterDatabase db) throws SQLException {
+        if (db == null) {
+            return;
+        }
+        for (int row = 0; row < myHeight; row++) {
+            for (int col = 0; col < myWidth; col++) {
+                if (maze[row][col].getPillar() != null) {
+                    placeGuardianNear(maze[row][col], db);
+                }
+            }
+        }
+        if (exit != null) {
+            placeGuardianNear(exit, db);
+        }
+    }
+
+    /**
+     * Places a guardian monster in an empty room connected to the target room.
+     * @param theTarget room to guard
+     * @param db MonsterDatabase object
+     * @throws SQLException if there is a problem connecting to the database
+     */
+    private void placeGuardianNear(final Room theTarget,
+                                   final MonsterDatabase db) throws SQLException {
+        List<Room> candidates = connectedEmptyNeighbors(theTarget);
+        if (candidates.isEmpty()) {
+            candidates = allEmptyRooms();
+        }
+        if (!candidates.isEmpty()) {
+            Collections.shuffle(candidates);
+            candidates.get(0).setMonstersManual(db.getMonsterByName("Ogre"));
+        }
+    }
+
+    /**
+     * Finds connected empty rooms next to the target room.
+     * @param theTarget room whose neighbors should be checked
+     * @return connected empty neighbors
+     */
+    private List<Room> connectedEmptyNeighbors(final Room theTarget) {
+        List<Room> rooms = new ArrayList<>();
+        Direction[] directions = {Direction.NORTH, Direction.EAST,
+                Direction.SOUTH, Direction.WEST};
+        for (Direction direction : directions) {
+            if (!theTarget.workingDoor(direction)) {
+                continue;
+            }
+            int row = theTarget.getRow() + rowDelta(direction);
+            int col = theTarget.getCol() + colDelta(direction);
+            if (inBounds(row, col) && maze[row][col].isEmpty()) {
+                rooms.add(maze[row][col]);
+            }
+        }
+        return rooms;
+    }
+
+    /**
+     * Finds all empty rooms in the dungeon.
+     * @return empty rooms
+     */
+    private List<Room> allEmptyRooms() {
+        List<Room> rooms = new ArrayList<>();
+        for (int row = 0; row < myHeight; row++) {
+            for (int col = 0; col < myWidth; col++) {
+                if (maze[row][col].isEmpty()) {
+                    rooms.add(maze[row][col]);
+                }
+            }
+        }
+        return rooms;
     }
 
     /**
@@ -271,8 +426,8 @@ public class Dungeon implements Serializable {
 
     /**
      * Returns the room at the specified coordinates.
-     * @param theR 1-based row number
-     * @param theC 1-based column number
+     * @param theR zero-based row number
+     * @param theC zero-based column number
      * @return the room at the specified coordinates
      */
     public Room getRoom(int theR, int theC) {
@@ -319,8 +474,8 @@ public class Dungeon implements Serializable {
 
     /**
      * Returns true if the specified coordinates are in the vision grid.
-     * @param theRow 1-based row number
-     * @param theCol 1-based column number
+     * @param theRow zero-based row number
+     * @param theCol zero-based column number
      * @return true if the specified coordinates are in the vision grid
      */
     public boolean isDiscovered(final int theRow, final int theCol) {
@@ -410,8 +565,8 @@ public class Dungeon implements Serializable {
 
     /**
      * Returns true if the specified coordinates are in the maze.
-     * @param theRow 1-based row number
-     * @param theCol 1-based column number
+     * @param theRow zero-based row number
+     * @param theCol zero-based column number
      * @return true if the specified coordinates are in the maze
      */
     private boolean inBounds(final int theRow, final int theCol) {

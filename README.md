@@ -7,9 +7,11 @@ Authors: Travis Vinay, Pavlo Puzik, Andrew DeFord.
 ## Features
 
 - Hero selection with Warrior, Thief, and Priestess classes.
-- Random 10x10 dungeon generation with rooms, doors, pits, potions, monsters, entrance, and exit.
+- Random 10x10 dungeon generation with rooms, doors, pits, potions, monsters, randomized entrance, and exit.
 - Four collectible pillars: abstraction, encapsulation, inheritance, and polymorphism.
-- Turn-based battle flow with attack, special skill, healing potion, and vision potion actions.
+- Turn-based battle flow with attack, special skill, and healing potion actions.
+- Vision potions reveal nearby dungeon rooms from the map screen.
+- Stronger guardian monsters are placed near pillar rooms and the exit.
 - Animated custom combat sprites for hero and monster battle poses.
 - Combat cooldowns for special skills and potion actions, shown with custom number badges.
 - Dungeon map rendering with discovered-room visibility.
@@ -26,7 +28,7 @@ src/dungeoncrawler/
   persistence/   SQLite database and fallback save managers
   view/          Swing terminal window, combat sprites, map renderer, and scaling helpers
 lib/             Bundled third-party jars
-assets/sprites/  Generated combat sprite sheets
+assets/sprites/  Combat sprite sheets and source credits
 ```
 
 The main class is:
@@ -111,7 +113,7 @@ On Windows, use `;` instead of `:` between classpath entries.
 
 ## Gameplay
 
-Start a new game, choose a hero class, and enter a name. Move with the directional buttons or keyboard movement bindings. Each room can contain hazards, potions, a monster, or one of the four pillars. Collect every pillar, survive battles, then reach the exit room to win.
+Start a new game, choose a hero class, and enter a name. Move with the directional buttons or keyboard movement bindings. Each room can contain hazards, potions, a monster, or one of the four pillars. Collect every pillar, survive battles, then reach the exit room to win. The hidden test option is Ctrl+Shift+D from the dungeon screen, or `debug dungeon` from the terminal after a session exists, which displays the full dungeon map.
 
 Saves can be created from the dungeon view and loaded from the main menu. SQLite saves are stored in `dungeon.db`. If SQLite saving is unavailable, fallback saves are written under `saves/`.
 

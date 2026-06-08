@@ -10,58 +10,74 @@ import dungeoncrawler.model.Room;
  */
 final class DungeonMapRenderer {
     String render(final Dungeon theDungeon) {
+        return render(theDungeon, false);
+    }
+
+    String renderFull(final Dungeon theDungeon) {
+        return render(theDungeon, true);
+    }
+
+    private String render(final Dungeon theDungeon, final boolean theRevealAll) {
         String text = "";
         for (int row = 0; row < theDungeon.getHeight(); row++) {
             for (int col = 0; col < theDungeon.getWidth(); col++) {
-                if (theDungeon.isDiscovered(row, col)) {
+                if (isVisible(theDungeon, row, col, theRevealAll)) {
                     text += "+";
                     text += topMapWall(theDungeon, row, col);
                 } else {
                     text += "    ";
                 }
             }
-            text += trailingMapCorner(theDungeon, row) + System.lineSeparator();
+            text += trailingMapCorner(theDungeon, row, theRevealAll)
+                    + System.lineSeparator();
 
             for (int col = 0; col < theDungeon.getWidth(); col++) {
                 Room room = theDungeon.getRoom(row, col);
-                if (theDungeon.isDiscovered(row, col)) {
+                if (isVisible(theDungeon, row, col, theRevealAll)) {
                     text += leftMapWall(room);
                     text += roomMapSymbol(theDungeon, room, row, col);
                 } else {
                     text += "    ";
                 }
             }
-            text += trailingMapWall(theDungeon, row) + System.lineSeparator();
+            text += trailingMapWall(theDungeon, row, theRevealAll)
+                    + System.lineSeparator();
         }
         for (int col = 0; col < theDungeon.getWidth(); col++) {
-            if (theDungeon.isDiscovered(theDungeon.getHeight() - 1, col)) {
+            if (isVisible(theDungeon, theDungeon.getHeight() - 1,
+                    col, theRevealAll)) {
                 text += "+---";
             } else {
                 text += "    ";
             }
         }
-        return text + trailingBottomCorner(theDungeon);
+        return text + trailingBottomCorner(theDungeon, theRevealAll);
     }
 
     private String trailingMapCorner(final Dungeon theDungeon,
-                                     final int theRow) {
-        if (theDungeon.isDiscovered(theRow, theDungeon.getWidth() - 1)) {
+                                     final int theRow,
+                                     final boolean theRevealAll) {
+        if (isVisible(theDungeon, theRow, theDungeon.getWidth() - 1,
+                theRevealAll)) {
             return "+";
         }
         return "";
     }
 
     private String trailingMapWall(final Dungeon theDungeon,
-                                   final int theRow) {
-        if (theDungeon.isDiscovered(theRow, theDungeon.getWidth() - 1)) {
+                                   final int theRow,
+                                   final boolean theRevealAll) {
+        if (isVisible(theDungeon, theRow, theDungeon.getWidth() - 1,
+                theRevealAll)) {
             return "|";
         }
         return "";
     }
 
-    private String trailingBottomCorner(final Dungeon theDungeon) {
-        if (theDungeon.isDiscovered(theDungeon.getHeight() - 1,
-                theDungeon.getWidth() - 1)) {
+    private String trailingBottomCorner(final Dungeon theDungeon,
+                                        final boolean theRevealAll) {
+        if (isVisible(theDungeon, theDungeon.getHeight() - 1,
+                theDungeon.getWidth() - 1, theRevealAll)) {
             return "+";
         }
         return "";
@@ -86,16 +102,19 @@ final class DungeonMapRenderer {
             return " @ ";
         }
         if (theRoom.isEntrance()) {
-            return " S ";
+            return " i ";
         }
         if (theRoom.isExit()) {
-            return " X ";
+            return " O ";
+        }
+        if (theRoom.getMonster() != null) {
+            return " M ";
         }
         if (theRoom.getPillar() != null) {
             return " " + pillarLetter(theRoom.getPillar()) + " ";
         }
         if (theRoom.hasPit()) {
-            return " L ";
+            return " X ";
         }
         if (theRoom.hasHealingPotion()) {
             return " H ";
@@ -103,10 +122,14 @@ final class DungeonMapRenderer {
         if (theRoom.hasVisionPotion()) {
             return " V ";
         }
-        if (theRoom.getMonster() != null) {
-            return " M ";
-        }
         return "   ";
+    }
+
+    private boolean isVisible(final Dungeon theDungeon,
+                              final int theRow,
+                              final int theCol,
+                              final boolean theRevealAll) {
+        return theRevealAll || theDungeon.isDiscovered(theRow, theCol);
     }
 
     private String pillarLetter(final Pillar thePillar) {

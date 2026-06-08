@@ -96,12 +96,6 @@ public class Battle {
                 && myPotionCooldown == 0;
     }
 
-    /** Returns true if the hero can use vision potions. **/
-    public boolean canUseVisionPotion() {
-        return isActive() && myHero.getVisionPotions() > 0
-                && myPotionCooldown == 0;
-    }
-
     /** Returns true if the hero can use a special skill. **/
     public boolean canUseSpecialSkill() {
         return isActive() && mySpecialSkillCooldown == 0;
@@ -204,30 +198,6 @@ public class Battle {
             performMonsterTurn(result);
         }
         return finish(result);
-    }
-
-    /**
-     * Uses a vision potion.
-     * @return The result of the battle
-     */
-    public BattleResult useVisionPotion() {
-        BattleResult result = new BattleResult();
-        if (!ensureActive(result)) {
-            return result;
-        }
-        if (myHero.getVisionPotions() <= 0) {
-            result.add("No vision potions remain.");
-            return result;
-        }
-        if (myPotionCooldown > 0) {
-            result.add("Potions are cooling down for "
-                    + myPotionCooldown + " more turn"
-                    + plural(myPotionCooldown) + ".");
-            return result;
-        }
-
-        result.add("Vision potions are for exploring the dungeon, not battle.");
-        return result;
     }
 
     /**
