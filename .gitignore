@@ -13,6 +13,11 @@
 # Package Files #
 *.jar
 !lib/sqlite-jdbc-3.53.1.0.jar
+!lib/mockito-core-5.20.0.jar
+!lib/byte-buddy-1.17.8.jar
+!lib/byte-buddy-agent-1.17.8.jar
+!lib/objenesis-3.3.jar
+!lib/junit-platform-console-standalone-1.14.0.jar
 *.war
 *.nar
 *.ear
