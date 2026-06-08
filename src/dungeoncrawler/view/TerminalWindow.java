@@ -109,6 +109,11 @@ public class TerminalWindow extends JFrame implements Appendable {
     private JButton myBattleRunButton;
     private JButton myBattleNewGameButton;
 
+    /**
+     * Creates the main Swing window for a dungeon crawler controller.
+     *
+     * @param theGame controller used to create, save, and load sessions
+     */
     public TerminalWindow(final DungeonCrawler theGame) {
         super("Dungeon Crawler Terminal");
         myGame = theGame;
@@ -129,6 +134,9 @@ public class TerminalWindow extends JFrame implements Appendable {
         printIntro();
     }
 
+    /**
+     * Displays the application window and focuses the command input.
+     */
     public void open() {
         pack();
         setSize(myWindowScaler.scaledStartingSize());
@@ -138,18 +146,35 @@ public class TerminalWindow extends JFrame implements Appendable {
         myInput.requestFocusInWindow();
     }
 
+    /**
+     * Releases audio resources before disposing the Swing frame.
+     */
     @Override
     public void dispose() {
         mySoundEffects.close();
         super.dispose();
     }
 
+    /**
+     * Appends text to the built-in terminal output area.
+     *
+     * @param theText text to append
+     * @return this window
+     */
     @Override
     public TerminalWindow append(final CharSequence theText) {
         appendText(String.valueOf(theText));
         return this;
     }
 
+    /**
+     * Appends a subsequence to the built-in terminal output area.
+     *
+     * @param theText source text
+     * @param theStart start index, inclusive
+     * @param theEnd end index, exclusive
+     * @return this window
+     */
     @Override
     public TerminalWindow append(final CharSequence theText,
                                  final int theStart,
@@ -158,6 +183,13 @@ public class TerminalWindow extends JFrame implements Appendable {
         return this;
     }
 
+    /**
+     * Appends one character to the built-in terminal output area.
+     *
+     * @param theCharacter character to append
+     * @return this window
+     * @throws IOException never thrown by this implementation
+     */
     @Override
     public TerminalWindow append(final char theCharacter) throws IOException {
         appendText(String.valueOf(theCharacter));

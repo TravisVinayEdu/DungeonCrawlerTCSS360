@@ -24,6 +24,9 @@ public final class SoundEffectPlayer implements AutoCloseable {
 
     private final Map<Cue, Clip> myClips;
 
+    /**
+     * Loads every available sound cue from the sound-effects asset folder.
+     */
     public SoundEffectPlayer() {
         myClips = new EnumMap<>(Cue.class);
         for (Cue cue : Cue.values()) {
@@ -46,6 +49,9 @@ public final class SoundEffectPlayer implements AutoCloseable {
         }
     }
 
+    /**
+     * Releases all loaded audio clips.
+     */
     @Override
     public void close() {
         for (Clip clip : myClips.values()) {
@@ -77,11 +83,17 @@ public final class SoundEffectPlayer implements AutoCloseable {
      * User-facing events with a corresponding sound-effect asset.
      */
     public enum Cue {
+        /** Main menu and button-click feedback. */
         MENU_BUTTON("menu-button.wav"),
+        /** Movement key or direction-button feedback. */
         MOVEMENT("movement.wav"),
+        /** Feedback for collecting a Pillar of OO. */
         PILLAR_FOUND("pillar-found.wav"),
+        /** Battle attack feedback. */
         ATTACK("attack.wav"),
+        /** Battle victory feedback. */
         BATTLE_WIN("battle-win.wav"),
+        /** Battle defeat feedback. */
         BATTLE_LOSE("battle-lose.wav");
 
         private final String myFileName;

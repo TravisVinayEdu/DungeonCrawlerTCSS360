@@ -17,12 +17,29 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * SQLite save manager for complete game sessions.
+ *
+ * <p>This manager stores hero state in {@code save_file} and room-by-room
+ * dungeon state in {@code saved_room}, including doors, discovered rooms,
+ * room contents, and monster statistics.</p>
+ */
 public class SaveManager extends DatabaseManager {
 
+    /**
+     * Opens the save database and prepares save tables.
+     *
+     * @throws SQLException if SQLite setup fails
+     */
     public SaveManager() throws SQLException {
         super();
     }
 
+    /**
+     * Creates and migrates save tables.
+     *
+     * @throws SQLException if schema setup fails
+     */
     @Override
     protected void initSchema() throws SQLException {
         String createSaveFile = """
@@ -89,7 +106,15 @@ public class SaveManager extends DatabaseManager {
         conn.commit();
     }
 
-    public int saveGame(Hero hero, Dungeon dungeon) throws SQLException {
+    /**
+     * Saves the current hero and dungeon state to SQLite.
+     *
+     * @param hero hero state to persist
+     * @param dungeon dungeon state to persist
+     * @return generated SQLite save id
+     * @throws SQLException if any insert fails
+     */
+    public int saveGame(final Hero hero, final Dungeon dungeon) throws SQLException {
         String saveFileSql = """
         INSERT INTO save_file
           (player_name, hero_class, hero_hp,
@@ -171,7 +196,14 @@ public class SaveManager extends DatabaseManager {
         return saveId;
     }
 
-    public Dungeon loadDungeon(int saveId) throws SQLException {
+    /**
+     * Loads dungeon state for a saved game.
+     *
+     * @param saveId SQLite save id
+     * @return reconstructed dungeon
+     * @throws SQLException if the save does not exist or cannot be read
+     */
+    public Dungeon loadDungeon(final int saveId) throws SQLException {
         // 1. Load dungeon metadata
         PreparedStatement metaStmt = conn.prepareStatement(
                 "SELECT * FROM save_file WHERE id = ?"
@@ -243,7 +275,14 @@ public class SaveManager extends DatabaseManager {
         return new Dungeon(maze, width, height, heroRow, heroCol, discovered);
     }
 
-    public Hero loadHero(int saveId) throws SQLException {
+    /**
+     * Loads hero state for a saved game.
+     *
+     * @param saveId SQLite save id
+     * @return reconstructed hero
+     * @throws SQLException if the save does not exist or cannot be read
+     */
+    public Hero loadHero(final int saveId) throws SQLException {
         PreparedStatement stmt = conn.prepareStatement(
                 "SELECT * FROM save_file WHERE id = ?"
         );
@@ -276,6 +315,12 @@ public class SaveManager extends DatabaseManager {
         }
     }
 
+    /**
+     * Lists SQLite saves in newest-first order.
+     *
+     * @return formatted save labels
+     * @throws SQLException if the query fails
+     */
     public List<String> listSaves() throws SQLException {
         ResultSet rs = conn.createStatement().executeQuery(
                 "SELECT id, player_name, hero_class, saved_at FROM save_file ORDER BY saved_at DESC"
@@ -292,7 +337,13 @@ public class SaveManager extends DatabaseManager {
         return saves;
     }
 
-    public void deleteSave(int saveId) throws SQLException {
+    /**
+     * Deletes one SQLite save and its room rows.
+     *
+     * @param saveId SQLite save id
+     * @throws SQLException if deletion fails
+     */
+    public void deleteSave(final int saveId) throws SQLException {
         PreparedStatement deleteRooms = conn.prepareStatement(
                 "DELETE FROM saved_room WHERE save_id = ?"
         );

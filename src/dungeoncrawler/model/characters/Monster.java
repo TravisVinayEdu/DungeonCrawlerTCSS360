@@ -12,6 +12,20 @@ public abstract class Monster extends DungeonCharacter {
     private final int myMinHeal;
     private final int myMaxHeal;
 
+    /**
+     * Creates a monster with combat and self-healing statistics.
+     *
+     * @param theName monster display name
+     * @param theHitPoints maximum and starting hit points
+     * @param theMinDmg minimum regular attack damage
+     * @param theMaxDmg maximum regular attack damage
+     * @param theAttackSpd attack speed used in battle calculations
+     * @param theHitChance chance for regular attacks to hit
+     * @param theChanceToHeal chance to heal after surviving damage
+     * @param theMinHeal minimum self-heal amount
+     * @param theMaxHeal maximum self-heal amount
+     * @throws IllegalArgumentException if heal chance or heal range is invalid
+     */
     protected Monster(final String theName,
                       final int theHitPoints,
                       final int theMinDmg,
@@ -60,18 +74,38 @@ public abstract class Monster extends DungeonCharacter {
         return super.heal(randomInRange(myMinHeal, myMaxHeal));
     }
 
+    /**
+     * Returns the monster's chance to heal after taking damage.
+     *
+     * @return heal chance from 0.0 to 1.0
+     */
     public double getChanceToHeal() {
         return myChanceToHeal;
     }
 
+    /**
+     * Returns the minimum heal amount for this monster.
+     *
+     * @return minimum heal amount
+     */
     public int getMinHeal() {
         return myMinHeal;
     }
 
+    /**
+     * Returns the maximum heal amount for this monster.
+     *
+     * @return maximum heal amount
+     */
     public int getMaxHeal() {
         return myMaxHeal;
     }
 
+    /**
+     * Builds a compact monster status summary.
+     *
+     * @return formatted monster summary
+     */
     @Override
     public String toString() {
         return getName()

@@ -12,6 +12,15 @@ import java.util.Queue;
 import java.util.Random;
 import java.io.Serializable;
 
+/**
+ * Randomly generated dungeon made of connected {@link Room} objects.
+ *
+ * <p>The dungeon owns the room grid, door topology, entrance and exit rooms,
+ * pillar placement, monster placement, discovered-room visibility, and the
+ * hero's current coordinates. Generated dungeons are carved so all rooms are
+ * reachable by doors, then special contents are placed after the entrance and
+ * exit are reserved.</p>
+ */
 public class Dungeon implements Serializable {
 
     /** Used for serialization. */
@@ -33,11 +42,13 @@ public class Dungeon implements Serializable {
     private int heroCol;
 
     /**
-     * Constructor for the Dungeon class.
+     * Creates a new randomly generated dungeon.
+     *
      * @param theWidth width of the dungeon
      * @param theHeight height of the dungeon
      * @param db MonsterDatabase object
      * @throws SQLException if there is a problem connecting to the database
+     * @throws IllegalArgumentException if either dimension is not positive
      */
     public Dungeon(final int theWidth, final int theHeight, MonsterDatabase db) throws SQLException {
         if (theWidth <= 0 || theHeight <= 0) {
@@ -51,13 +62,14 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Constructor for the Dungeon class. Used for loading a saved dungeon.
+     * Reconstructs a dungeon from saved room and visibility state.
+     *
      * @param maze 2D array of Room objects
      * @param width width of the dungeon
      * @param height height of the dungeon
      * @param heroRow zero-based row number of the hero
      * @param heroCol zero-based column number of the hero
-     * @param discovered The dungeon's vision grid.
+     * @param discovered dungeon visibility grid
      */
     public Dungeon(Room[][] maze, int width, int height,
             int heroRow, int heroCol, boolean[][] discovered) {
@@ -426,6 +438,7 @@ public class Dungeon implements Serializable {
 
     /**
      * Returns the room at the specified coordinates.
+     *
      * @param theR zero-based row number
      * @param theC zero-based column number
      * @return the room at the specified coordinates
@@ -436,6 +449,7 @@ public class Dungeon implements Serializable {
 
     /**
      * Returns the room the hero is currently in.
+     *
      * @return the room the hero is currently in
      */
     public Room getCurrentRoom() {
@@ -443,7 +457,8 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Moves the hero in the specified direction.
+     * Moves the hero in the specified direction if an open door allows it.
+     *
      * @param d the direction to move the hero
      * @return true if the hero moved, false if the hero cannot move in that direction
      */
@@ -465,18 +480,20 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Returns the vision grid.
-     * @return the vision grid
+     * Returns the grid of discovered rooms.
+     *
+     * @return discovered-room grid with null entries for unseen rooms
      */
     public Room[][] getVisionGrid() {
         return discoveredMaze;
     }
 
     /**
-     * Returns true if the specified coordinates are in the vision grid.
+     * Returns true if the specified coordinates have been discovered.
+     *
      * @param theRow zero-based row number
      * @param theCol zero-based column number
-     * @return true if the specified coordinates are in the vision grid
+     * @return true if the coordinates are in bounds and visible
      */
     public boolean isDiscovered(final int theRow, final int theCol) {
         if (!inBounds(theRow, theCol)) {
@@ -486,7 +503,8 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Gets the hero's row number.
+     * Gets the hero's zero-based row number.
+     *
      * @return the hero's row number
      */
     public int getHeroRow() {
@@ -494,7 +512,8 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Gets the hero's column number.
+     * Gets the hero's zero-based column number.
+     *
      * @return the hero's column number
      */
     public int getHeroCol() {
@@ -502,7 +521,8 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Gets the width of the dungeon.
+     * Gets the width of the dungeon in rooms.
+     *
      * @return the width of the dungeon
      */
     public int getWidth() {
@@ -510,7 +530,8 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Gets the height of the dungeon.
+     * Gets the height of the dungeon in rooms.
+     *
      * @return the height of the dungeon
      */
     public int getHeight() {
@@ -518,8 +539,9 @@ public class Dungeon implements Serializable {
     }
 
     /**
-     * Returns a string representation of the dungeon.
-     * @return a string representation of the dungeon
+     * Returns a text representation of every room in the dungeon.
+     *
+     * @return multi-line dungeon string
      */
     @Override
     public String toString() {

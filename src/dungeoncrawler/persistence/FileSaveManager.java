@@ -24,6 +24,19 @@ public class FileSaveManager {
     private static final DateTimeFormatter SAVE_TIME =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * Creates a file-based save manager.
+     */
+    public FileSaveManager() {
+    }
+
+    /**
+     * Serializes a game session to the fallback save directory.
+     *
+     * @param theSession session to save
+     * @return generated save identifier
+     * @throws IOException if the save file cannot be written
+     */
     public long saveGame(final GameSession theSession) throws IOException {
         Files.createDirectories(SAVE_DIR);
         long saveId = System.currentTimeMillis();
@@ -36,6 +49,13 @@ public class FileSaveManager {
         return saveId;
     }
 
+    /**
+     * Loads a serialized fallback save.
+     *
+     * @param theSaveId save identifier
+     * @return saved game session
+     * @throws IOException if the save cannot be read or is invalid
+     */
     public GameSession loadGame(final long theSaveId) throws IOException {
         try (ObjectInputStream in = new ObjectInputStream(
                 Files.newInputStream(savePath(theSaveId)))) {
@@ -49,6 +69,12 @@ public class FileSaveManager {
         }
     }
 
+    /**
+     * Lists readable serialized fallback saves.
+     *
+     * @return formatted save labels ordered newest first
+     * @throws IOException if the save directory cannot be listed
+     */
     public List<String> listSaves() throws IOException {
         List<SaveRecord> records = new ArrayList<>();
         if (!Files.isDirectory(SAVE_DIR)) {
